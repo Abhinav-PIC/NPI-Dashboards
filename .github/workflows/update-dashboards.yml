@@ -63,21 +63,16 @@ jobs:
 
       - name: Commit Changes
         shell: bash
+        env:
+          PROJECT: ${{ env.PROJECT }}
         run: |
           set -euo pipefail
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
-          # Stage all current local changes under the repository (preserve directory names as-is)
-          git add -A || true
-
-          # If there are no staged changes, exit quietly
-          if git diff --cached --quiet; then
-            echo "ℹ️ No changes to commit"
-            exit 0
+          MONTH=$(date -u +%Y-%m)
+          git add "snapshots/$MONTH/${PROJECT}"
+          if ! git diff --cached --quiet; then
+            git commit -m "Update ${PROJECT} screenshots [skip ci]"
+            git push
           fi
-
-          # Commit and push whatever is staged
-          git commit -m "Update ${{ github.event.inputs.project || github.event.client_payload.project }} screenshots [skip ci]"
-          git push
-          echo "✅ Changes committed and pushed successfully"

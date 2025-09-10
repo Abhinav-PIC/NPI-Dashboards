@@ -157,17 +157,25 @@ async function run() {
   const inputProject = process.argv[2];
   const startFromDashboard = parseInt(process.argv[3]) || 1;
   
+  // Log input for debugging
+  console.log(`Received project name: "${inputProject}"`);
+  
   // Normalize project name to match DASHBOARDS keys
-  const project = Object.keys(DASHBOARDS).find(p => p.toLowerCase() === inputProject.toLowerCase()) || inputProject;
+  const project = Object.keys(DASHBOARDS).find(p => {
+    console.log(`Comparing "${p.toLowerCase()}" with "${inputProject.toLowerCase()}"`);
+    return p.toLowerCase() === inputProject.toLowerCase();
+  }) || inputProject;
   
   if (!DASHBOARDS[project]) {
+    console.log("\nError: Invalid or unknown project name.");
     console.log("Usage: node snapshots.js <project> [startFromDashboard]");
     console.log("Available projects:");
     console.log(`  ${Object.keys(DASHBOARDS).join('\n  ')}`);
-    console.log("\nExample: node snapshots.js 'VM 14.0' 5");
-    console.log(`\nError: Project "${inputProject}" not found`);
+    console.log(`\nReceived: "${inputProject}"`);
     process.exit(1);
   }
+  
+  console.log(`✅ Project validated: "${project}"`)
 
   const browser = await puppeteer.launch({
     headless: "new",

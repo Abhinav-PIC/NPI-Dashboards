@@ -1,0 +1,104 @@
+name: Update Dashboards
+run-name: Update ${{ github.event.inputs.project || github.event.client_payload.project }} Dashboards
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Project to update (vm13/blaze/vm14)'
+        required: true
+        type: choice
+        options:
+          - vm13
+          - blaze
+          - vm14
+  repository_dispatch:
+    types:
+      - repository_dispatch
+
+jobs:
+  capture-dashboards:
+    runs-on: ubuntu-latest
+    environment: github-pages
+    permissions:
+      contents: write
+    steps:
+      - name: Clean workspace
+        run: rm -rf ./* || true
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+
+      - name: Verify snapshots.js content
+        run: |
+          echo "Content of snapshots.js:"
+          cat snapshots.js
+          echo "Project name mapping in snapshots.js:"
+          grep -A 4 "const PROJECT_NAMES = {" snapshots.js
+          echo "Available projects in snapshots.js:"
+          grep -A 2 "const DASHBOARDS = {" snapshots.js
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: |
+          npm install
+          npm list  # List installed packages for debugging
+
+      - name: Create Screenshots Directory
+        run: |
+          # Get current date in YYYY-MM format
+          CURRENT_DATE=$(date +%Y-%m)
+          echo "Creating directories for date: $CURRENT_DATE"
+          
+          # Create base snapshots directory
+          mkdir -p snapshots/$CURRENT_DATE
+          
+          # Create project-specific directories with proper spacing
+          for PROJECT_DIR in "VM 13.0" "Blaze 1.0" "VM 14.0"; do
+            echo "Creating directory for project: $PROJECT_DIR"
+            mkdir -p "snapshots/$CURRENT_DATE/$PROJECT_DIR"
+          done
+          
+          # List created directories
+          echo "Created directory structure:"
+          ls -R snapshots/$CURRENT_DATE
+
+      - name: Capture Screenshots
+        run: |
+          if [ "${{ github.event.inputs.project }}" != "" ]; then
+            PROJECT=${{ github.event.inputs.project }}
+          else
+            PROJECT=${{ github.event.client_payload.project }}
+          fi
+          
+          echo "Running screenshot capture for project: $PROJECT"
+          echo "Current directory content:"
+          ls -la
+          
+          echo "Full snapshots.js content:"
+          cat snapshots.js
+          
+          echo "Git status and info:"
+          git status
+          git log -1 --pretty=format:"%h %s"
+          
+          echo "Running node with --trace-warnings:"
+          node --trace-warnings snapshots.js $PROJECT
+
+      - name: Commit and Push Changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.WORKFLOW_PAT_NEW }}
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add snapshots/
+          git commit -m "Update ${{ github.event.inputs.project || github.event.client_payload.project }} screenshots [skip ci]"
+          git push origin main

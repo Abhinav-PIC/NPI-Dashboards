@@ -170,12 +170,14 @@ async function run() {
     args: ["--no-sandbox", "--disable-setuid-sandbox"]
   });
 
+  // Create output directory with year-month and project name
   const outDir = path.join(
     OUT_ROOT,
     new Date().toISOString().slice(0, 7),
     project
   );
   await ensureDir(outDir);
+  console.log(`   Output directory: ${outDir}`);
 
   const page = await browser.newPage();
   await page.setViewport(DEVICE_VIEWPORT);
@@ -220,6 +222,7 @@ async function run() {
 
         // set filename base with project-specific directory
         const dashboardNumber = i + 1;
+        console.log(`   Capturing to ${outDir}`);
         const base = path.join(outDir, `Dashboard-${dashboardNumber}`);
         const finalPath = await capturePageFullStitched(page, base);
 

@@ -154,14 +154,18 @@ async function capturePageFullStitched(page, outPathBase) {
 }
 
 async function run() {
-  const project = process.argv[2];
+  const inputProject = process.argv[2];
   const startFromDashboard = parseInt(process.argv[3]) || 1;
   
-  if (!project || !DASHBOARDS[project]) {
+  // Normalize project name to match DASHBOARDS keys
+  const project = Object.keys(DASHBOARDS).find(p => p.toLowerCase() === inputProject.toLowerCase()) || inputProject;
+  
+  if (!DASHBOARDS[project]) {
     console.log("Usage: node snapshots.js <project> [startFromDashboard]");
     console.log("Available projects:");
     console.log(`  ${Object.keys(DASHBOARDS).join('\n  ')}`);
     console.log("\nExample: node snapshots.js 'VM 14.0' 5");
+    console.log(`\nError: Project "${inputProject}" not found`);
     process.exit(1);
   }
 

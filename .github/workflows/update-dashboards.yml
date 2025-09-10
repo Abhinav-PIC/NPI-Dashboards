@@ -72,7 +72,5 @@ jobs:
 
           MONTH=$(date -u +%Y-%m)
           git add "snapshots/$MONTH/${PROJECT}"
-          if ! git diff --cached --quiet; then
-            git commit -m "Update ${PROJECT} screenshots [skip ci]"
-            git push
-          fi
+          git commit -m "Update ${PROJECT} screenshots [skip ci]" --allow-empty
+          git push

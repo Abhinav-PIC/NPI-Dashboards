@@ -544,7 +544,6 @@
       
       // Update message with full project name
       messageEl.textContent = `Starting dashboard refresh for ${fullProjectName}...`;
-      }
 
       console.log(`Sending request to GitHub API for project: ${fullProjectName}`);
       const response = await fetch('https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards/dispatches', {

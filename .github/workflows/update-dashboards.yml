@@ -52,6 +52,17 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add snapshots/
-          git commit -m "Update ${{ github.event.inputs.project }} screenshots [skip ci]"
-          git push
+          
+          # List contents of snapshots directory
+          echo "📁 Contents of snapshots directory before commit:"
+          ls -R snapshots/ || echo "No snapshots directory found"
+          
+          # Force add any changes in snapshots directory
+          git add -f snapshots/ || echo "No snapshots directory to add"
+            git commit -m "Update ${{ github.event.inputs.project || github.event.client_payload.project }} screenshots [skip ci]"
+            git push
+            echo "✅ Changes committed and pushed successfully"
+          else
+            echo "ℹ️ No changes to commit"
+            exit 0
+          fi

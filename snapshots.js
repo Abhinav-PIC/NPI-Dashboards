@@ -189,6 +189,7 @@ async function run() {
     console.log(`\nDashboard ${dashboardNumber}/${urls.length}: ${urls[i]}`);
     
     try {
+        const url = urls[i];
         // Navigate and wait for initial load
         await page.goto(url, { waitUntil: "networkidle2", timeout: NAV_TIMEOUT });
         
@@ -224,7 +225,7 @@ async function run() {
 
         console.log(`✅ Saved: ${finalPath}`);
       } catch (err) {
-        console.error(`❌ Error capturing ${name}:`, err && err.message ? err.message : err);
+        console.error(`❌ Error capturing dashboard ${dashboardNumber}:`, err && err.message ? err.message : err);
       }
     }
 

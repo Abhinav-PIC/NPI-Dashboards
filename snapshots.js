@@ -212,7 +212,7 @@ async function run() {
           ];
           
           // Wait for loaders to disappear
-          for (let i = 0; i < 30; i++) {
+          for (let attempt = 0; attempt < 30; attempt++) {
             const loaders = document.querySelectorAll(loadingSelectors.join(','));
             if (loaders.length === 0) break;
             
@@ -226,8 +226,8 @@ async function run() {
 
         // set filename base with project-specific directory
         const dashboardNumber = i + 1;
-        console.log(`   Capturing to ${outDir}`);
         const base = path.join(outDir, `Dashboard-${dashboardNumber}`);
+        console.log(`   Capturing to ${base}`);
         const finalPath = await capturePageFullStitched(page, base);
 
         console.log(`✅ Saved: ${finalPath}`);

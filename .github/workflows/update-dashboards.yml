@@ -35,8 +35,17 @@ jobs:
 
       - name: Capture Screenshots
         run: |
-          # snapshots.js will create directories as needed
+          # Get project name from input or client payload
           PROJECT="${{ github.event.inputs.project || github.event.client_payload.project }}"
+          
+          # Validate project name
+          if [[ "$PROJECT" != "VM 13.0" && "$PROJECT" != "Blaze 1.0" && "$PROJECT" != "VM 14.0" ]]; then
+            echo "Error: Invalid project name: '$PROJECT'"
+            echo "Must be one of: 'VM 13.0', 'Blaze 1.0', 'VM 14.0'"
+            exit 1
+          fi
+          
+          echo "Running snapshots for project: $PROJECT"
           node snapshots.js "$PROJECT"
 
       - name: Commit Changes

@@ -530,8 +530,20 @@
         throw new Error('GitHub token not properly configured');
       }
 
-      // Trigger workflow with debug logging
-      console.log('Sending request to GitHub API...');
+      // Map route names to full project names
+      const projectNames = {
+        'vm13': 'VM 13.0',
+        'blaze': 'Blaze 1.0',
+        'vm14': 'VM 14.0'
+      };
+
+      // Get full project name
+      const fullProjectName = projectNames[project];
+      if (!fullProjectName) {
+        throw new Error(`Invalid project name: ${project}`);
+      }
+
+      console.log(`Sending request to GitHub API for project: ${fullProjectName}`);
       const response = await fetch('https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards/dispatches', {
         method: 'POST',
         headers: {
@@ -542,7 +554,7 @@
         },
         body: JSON.stringify({
           event_type: 'repository_dispatch',
-          client_payload: { project }
+          client_payload: { project: fullProjectName }
         })
       });
 

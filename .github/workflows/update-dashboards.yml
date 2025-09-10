@@ -44,7 +44,6 @@ jobs:
 
           # Clean quotes, CR, and trim whitespace
           PROJECT_CLEAN=$(printf "%s" "$RAW_PROJECT" | tr -d '"' | tr -d "'" | tr -d '\r' | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')
-          LCASE=$(printf "%s" "$PROJECT_CLEAN" | tr '[:upper:]' '[:lower:]')
 
           # Only accept exact canonical project names; allow trimming of surrounding quotes/CR and whitespace
           PROJECT="$PROJECT_CLEAN"

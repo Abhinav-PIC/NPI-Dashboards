@@ -522,7 +522,6 @@
     const overlay = document.getElementById('refresh-overlay');
     const messageEl = overlay.querySelector('.message');
     overlay.classList.add('active');
-    messageEl.textContent = `Starting dashboard refresh for ${project.toUpperCase()}...`;
 
     try {
       // Debug: Check if token exists
@@ -530,17 +529,21 @@
         throw new Error('GitHub token not properly configured');
       }
 
-      // Map route names to full project names
+      // Map route names to full project names (case-sensitive)
       const projectNames = {
         'vm13': 'VM 13.0',
         'blaze': 'Blaze 1.0',
         'vm14': 'VM 14.0'
       };
-
-      // Get full project name
+      
+      // Get full project name and validate
       const fullProjectName = projectNames[project];
       if (!fullProjectName) {
         throw new Error(`Invalid project name: ${project}`);
+      }
+      
+      // Update message with full project name
+      messageEl.textContent = `Starting dashboard refresh for ${fullProjectName}...`;
       }
 
       console.log(`Sending request to GitHub API for project: ${fullProjectName}`);

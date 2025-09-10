@@ -288,7 +288,7 @@
     <div class="nav-item">
       <a class="btn" href="#vm13" data-route="vm13">VM 13.0</a>
       <div class="dropdown">
-        <a class="dropdown-item refresh-button" href="#" onclick="refreshDashboards('vm13')">
+  <a class="dropdown-item refresh-button" href="#" onclick="refreshDashboards('VM 13.0')">
           <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
           Refresh Dashboards
         </a>
@@ -302,7 +302,7 @@
     <div class="nav-item">
       <a class="btn" href="#blaze" data-route="blaze">Blaze 1.0</a>
       <div class="dropdown">
-        <a class="dropdown-item refresh-button" href="#" onclick="refreshDashboards('blaze')">
+  <a class="dropdown-item refresh-button" href="#" onclick="refreshDashboards('Blaze 1.0')">
           <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
           Refresh Dashboards
         </a>
@@ -316,7 +316,7 @@
     <div class="nav-item">
       <a class="btn" href="#vm14" data-route="vm14">VM 14.0</a>
       <div class="dropdown">
-        <a class="dropdown-item refresh-button" href="#" onclick="refreshDashboards('vm14')">
+  <a class="dropdown-item refresh-button" href="#" onclick="refreshDashboards('VM 14.0')">
           <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
           Refresh Dashboards
         </a>
@@ -529,19 +529,15 @@
         throw new Error('GitHub token not properly configured');
       }
 
-      // Map route names to full project names (case-sensitive)
-      const projectNames = {
-        'vm13': 'VM 13.0',
-        'blaze': 'Blaze 1.0',
-        'vm14': 'VM 14.0'
-      };
-      
-      // Get full project name and validate
-      const fullProjectName = projectNames[project];
-      if (!fullProjectName) {
-        throw new Error(`Invalid project name: ${project}`);
+      // Expect the full canonical project name to be passed in. Trim quotes/whitespace only.
+      const cleaned = (typeof project === 'string') ? project.replace(/^\s+|\s+$/g, '').replace(/^['"]|['"]$/g, '') : project;
+      const fullProjectName = cleaned;
+
+      // Validate canonical project name (exact match)
+      if (fullProjectName !== 'VM 13.0' && fullProjectName !== 'Blaze 1.0' && fullProjectName !== 'VM 14.0') {
+        throw new Error(`Invalid project name: ${fullProjectName}. Must be exactly 'VM 13.0', 'Blaze 1.0' or 'VM 14.0'.`);
       }
-      
+
       // Update message with full project name
       messageEl.textContent = `Starting dashboard refresh for ${fullProjectName}...`;
 

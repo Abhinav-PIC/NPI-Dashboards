@@ -34,25 +34,31 @@ jobs:
         run: npm install
 
       - name: Capture Screenshots
+        shell: bash
         run: |
           # Get project name from input or client payload
-          PROJECT="${{ github.event.inputs.project || github.event.client_payload.project }}"
-          echo "📋 Project name received: '$PROJECT'"
-          
-          # Remove any extra quotes that might be present
-          PROJECT=$(echo "$PROJECT" | tr -d '"' | tr -d "'")
-          echo "🔍 Normalized project name: '$PROJECT'"
-          
-          # Validate project name
-          if [[ "$PROJECT" = "VM 13.0" || "$PROJECT" = "Blaze 1.0" || "$PROJECT" = "VM 14.0" ]]; then
-            echo "✅ Valid project name detected"
-            echo "Running snapshots for project: $PROJECT"
-            node snapshots.js "$PROJECT"
-          else
-            echo "❌ Error: Invalid project name: '$PROJECT'"
-            echo "Must be one of: 'VM 13.0', 'Blaze 1.0', 'VM 14.0'"
+          RAW_PROJECT="${{ github.event.inputs.project || github.event.client_payload.project }}"
+          echo "📋 Raw project input: '$RAW_PROJECT'"
+
+          # Clean quotes, CR, and trim whitespace
+          PROJECT_CLEAN=$(printf "%s" "$RAW_PROJECT" | tr -d '"' | tr -d "'" | tr -d '\r' | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')
+          LCASE=$(printf "%s" "$PROJECT_CLEAN" | tr '[:upper:]' '[:lower:]')
+
+          # Only accept exact canonical project names; allow trimming of surrounding quotes/CR and whitespace
+          PROJECT="$PROJECT_CLEAN"
+
+          echo "\ud83d\udd0d Normalized (trimmed) project name: '$PROJECT'"
+
+          # Validate canonical project name (exact, case-sensitive)
+          if [[ "$PROJECT" != "VM 13.0" && "$PROJECT" != "Blaze 1.0" && "$PROJECT" != "VM 14.0" ]]; then
+            echo "\u274c Error: Invalid project name: '$PROJECT'"
+            echo "Must be one of: 'VM 13.0', 'Blaze 1.0', 'VM 14.0' (exact, case-sensitive)"
             exit 1
           fi
+
+          echo "\u2705 Valid canonical project name detected"
+          echo "Running snapshots for project: $PROJECT"
+          node snapshots.js "$PROJECT"
 
       - name: Commit Changes
         shell: bash

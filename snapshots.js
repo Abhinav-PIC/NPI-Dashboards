@@ -160,12 +160,10 @@ async function run() {
   // Log input for debugging
   console.log(`Received project name: "${inputProject}"`);
   
-  // Normalize project name to match DASHBOARDS keys
-  const project = Object.keys(DASHBOARDS).find(p => {
-    console.log(`Comparing "${p.toLowerCase()}" with "${inputProject.toLowerCase()}"`);
-    return p.toLowerCase() === inputProject.toLowerCase();
-  }) || inputProject;
-  
+  // Trim surrounding quotes/CR and whitespace, then require exact canonical project name
+  const cleaned = typeof inputProject === 'string' ? inputProject.replace(/^\s+|\s+$/g, '').replace(/^['"]|['"]$/g, '') : inputProject;
+  const project = cleaned;
+
   if (!DASHBOARDS[project]) {
     console.log("\nError: Invalid or unknown project name.");
     console.log("Usage: node snapshots.js <project> [startFromDashboard]");

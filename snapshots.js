@@ -220,7 +220,7 @@ async function run() {
 
         // set filename base with project-specific directory
         const dashboardNumber = i + 1;
-        const base = path.join(projectDir, `Dashboard-${dashboardNumber}`);
+        const base = path.join(outDir, `Dashboard-${dashboardNumber}`);
         const finalPath = await capturePageFullStitched(page, base);
 
         console.log(`✅ Saved: ${finalPath}`);

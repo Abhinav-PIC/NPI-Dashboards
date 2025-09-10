@@ -375,8 +375,9 @@ async function run(){
         await sleep(250);
 
         // set filename base with project-specific directory
-        const projectDir = projectDirs[project];
+        const fullProjectName = PROJECT_NAMES[project];
         const dashboardNumber = i + 1;
+        const projectDir = path.join(baseOutDir, fullProjectName);
         const base = path.join(projectDir, `Dashboard-${dashboardNumber}`);
         const finalPath = await capturePageFullStitched(page, base);
 

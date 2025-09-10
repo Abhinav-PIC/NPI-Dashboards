@@ -55,20 +55,35 @@ jobs:
           fi
 
       - name: Commit Changes
+        shell: bash
         run: |
+          set -euo pipefail
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          
-          # List contents of snapshots directory
+
           echo "📁 Contents of snapshots directory before commit:"
-          ls -R snapshots/ || echo "No snapshots directory found"
-          
-          # Force add any changes in snapshots directory
-          git add -f snapshots/ || echo "No snapshots directory to add"
+          if [ -d snapshots ]; then
+            ls -R snapshots/ || true
+          else
+            echo "No snapshots directory found"
+          fi
+
+          # Add any changes under snapshots/ (force in case files are gitignored)
+          git add -A snapshots/ || true
+
+          # If there are no staged changes, write a small marker file so we can record the run
+          if git diff --cached --quiet; then
+            MARKER="snapshots/last-run-$(echo "$PROJECT" | tr ' /' '__').txt"
+            echo "Run: $(date -u +%Y-%m-%dT%H:%M:%SZ) Project: $PROJECT" > "$MARKER"
+            git add "$MARKER"
+          fi
+
+          # Now commit if there are staged changes
+          if git diff --cached --quiet; then
+            echo "ℹ️ Still no changes to commit after marker creation"
+            exit 0
+          else
             git commit -m "Update ${{ github.event.inputs.project || github.event.client_payload.project }} screenshots [skip ci]"
             git push
             echo "✅ Changes committed and pushed successfully"
-          else
-            echo "ℹ️ No changes to commit"
-            exit 0
           fi

@@ -2,39 +2,33 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
   pages: write
   id-token: write
-  deployments: write
 
 jobs:
   deploy:
-    concurrency: ci-${{ github.ref }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-        
-      - name: Inject token into HTML
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v4
+      - name: Inject GitHub token
+        env:
+          DEPLOY_TOKEN: ${{ secrets.WORKFLOW_PAT_NEW }}
         run: |
-          sed -i "s/WORKFLOW_PAT_NEW = '.*'/WORKFLOW_PAT_NEW = '${{ secrets.WORKFLOW_PAT_NEW }}'/" index.html
-          
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+          # More robust token injection
+          sed -i "s/WORKFLOW_PAT_NEW = '[^']*'/WORKFLOW_PAT_NEW = '$DEPLOY_TOKEN'/" index.html
+          # Verify injection worked (without exposing token)
+          grep -q "WORKFLOW_PAT_NEW = '[^']\+'" index.html && echo "✓ Token injected" || exit 1
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
-          
-      - name: Deploy to GitHub Pages
-        id: deployment
+      - id: deployment
         uses: actions/deploy-pages@v4

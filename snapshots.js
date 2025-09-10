@@ -15,29 +15,22 @@ const GENTLE_SCROLL_PAUSE = 500;   // pause after each scroll (ms)
 const NAV_TIMEOUT = 120000;        // navigation timeout (ms)
 const SCROLL_STEP = 800;           // pixels to scroll in each step during full page scan
 
-// Project name mapping from short names to full names
-const PROJECT_NAMES = {
-  vm13: 'VM 13.0',
-  blaze: 'Blaze 1.0',
-  vm14: 'VM 14.0'
-};
-
 // Dashboard URLs for each project
 const DASHBOARDS = {
-  vm13: [
+  "VM 13.0": [
     "https://app.smartsheet.eu/b/publish?EQBCT=3b520afbf1da4f90a727c17fe95907f8",
     "https://app.smartsheet.eu/b/publish?EQBCT=01347ff55a724070a834146d3d87a0f6",
     "https://app.smartsheet.eu/b/publish?EQBCT=fef1863840294332a6b492bb15e9449d",
     "https://app.smartsheet.eu/b/publish?EQBCT=6d451758e57f4b5d960c35f1b4699c6b",
     "https://app.smartsheet.eu/b/publish?EQBCT=4af1d8a89b7d48a7ae3a28115bda420e"
   ],
-  blaze: [
+  "Blaze 1.0": [
     "https://app.smartsheet.eu/b/publish?EQBCT=b22923d86abe45e99b9ed2abea242eec",
     "https://app.smartsheet.eu/b/publish?EQBCT=4de851d39dc848c8b319e5678b8c9c0a",
     "https://app.smartsheet.eu/b/publish?EQBCT=f774be235fb04630b40f3f344b32b40a",
     "https://app.smartsheet.eu/b/publish?EQBCT=b3905dbea4f649c197da14c84b3bc34c"
   ],
-  vm14: [
+  "VM 14.0": [
     "https://app.smartsheet.eu/b/publish?EQBCT=a2759a020f6e45a3a6dc3fea089b2bd4",
     "https://app.smartsheet.eu/b/publish?EQBCT=28c0f9d1fa8541858e7054f76798a6d3",
     "https://app.smartsheet.eu/b/publish?EQBCT=6fca486dbfc842c7afac7cb0ced8337e",
@@ -50,333 +43,181 @@ const DASHBOARDS = {
 
 function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
-function nowIsoTs(){
-  const d = new Date();
-  const pad = n => String(n).padStart(2,'0');
-  const YYYY = d.getUTCFullYear();
-  const MM = pad(d.getUTCMonth()+1);
-  const DD = pad(d.getUTCDate());
-  const hh = pad(d.getUTCHours());
-  const mm = pad(d.getUTCMinutes());
-  const ss = pad(d.getUTCSeconds());
-  return `${YYYY}${MM}${DD}_${hh}${mm}${ss}Z`;
-}
-
 async function ensureDir(dir){
   try{ await fs.mkdir(dir, { recursive: true }); }catch(e){ /* ignore */ }
 }
 
-async function saveBuffer(filePath, buf){
-  await fs.writeFile(filePath, buf);
-}
-
-async function scrollThroughEntirePage(page) {
-  console.log("   📜 Pre-scrolling through entire page to load all content...");
+async function preparePageForCapture(page) {
+  console.log("   Pre-loading all content...");
   
-  // First, scroll to top
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await sleep(500);
-
-  // Get initial page dimensions
-  let prevScrollHeight = 0;
-  let currentScrollHeight = await page.evaluate(() => document.body.scrollHeight);
+  let prevHeight = 0;
+  let currentHeight = await page.evaluate(() => document.body.scrollHeight);
   let scrollY = 0;
-  let noChangeCount = 0;
+  let stableCount = 0;
   
-  // Scroll through the entire page to trigger lazy loading
-  while (scrollY < currentScrollHeight && noChangeCount < 5) {
-    scrollY += SCROLL_STEP;
+  // Scroll through page to load all content
+  while (scrollY < currentHeight && stableCount < 5) {
     await page.evaluate(y => window.scrollTo(0, y), scrollY);
     await sleep(GENTLE_SCROLL_PAUSE);
     
-    // Check if page height has changed (new content loaded)
-    prevScrollHeight = currentScrollHeight;
-    currentScrollHeight = await page.evaluate(() => document.body.scrollHeight);
+    scrollY += SCROLL_STEP;
+    prevHeight = currentHeight;
+    currentHeight = await page.evaluate(() => document.body.scrollHeight);
     
-    if (currentScrollHeight === prevScrollHeight) {
-      noChangeCount++;
-    } else {
-      noChangeCount = 0;
-      console.log(`   📈 Page height increased to ${currentScrollHeight}px`);
-    }
-    
-    // Update scroll target if page grew
-    if (scrollY >= currentScrollHeight) {
-      break;
-    }
-  }
-
-  // Scroll to the very bottom and wait a bit more
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  await sleep(1000);
-
-  // Final check for any last-minute content loading
-  const finalHeight = await page.evaluate(() => document.body.scrollHeight);
-  console.log(`   ✅ Finished pre-scrolling. Final page height: ${finalHeight}px`);
-
-  // Scroll back to top before capturing
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await sleep(500);
-  
-  return finalHeight;
-}
-
-async function waitForStableContent(page) {
-  console.log("   ⏳ Waiting for content to stabilize...");
-  
-  let stableCount = 0;
-  let previousHeight = 0;
-  
-  // Wait for content to stop changing
-  while (stableCount < 3) {
-    const currentHeight = await page.evaluate(() => document.body.scrollHeight);
-    
-    if (currentHeight === previousHeight) {
+    if (currentHeight === prevHeight) {
       stableCount++;
     } else {
       stableCount = 0;
-      console.log(`   📏 Content height changed: ${currentHeight}px`);
     }
-    
-    previousHeight = currentHeight;
-    await sleep(1000);
   }
   
-  console.log("   ✅ Content appears stable");
+  await page.evaluate(() => window.scrollTo(0, 0));
+  return currentHeight;
 }
 
-async function capturePageFullStitched(page, outPathBase){
-  // First, scroll through entire page to load all lazy content
-  await scrollThroughEntirePage(page);
+async function capturePageFullStitched(page, outPathBase) {
+  // Load all content and get final dimensions
+  await preparePageForCapture(page);
   
-  // Wait for any final content to stabilize
-  await waitForStableContent(page);
-  
-  // Now evaluate final page size (CSS pixels)
-  const dims = await page.evaluate(() => {
-    const body = document.body;
-    const doc = document.documentElement;
-    return {
-      scrollWidth: Math.max(body.scrollWidth, doc.scrollWidth, doc.clientWidth),
-      scrollHeight: Math.max(body.scrollHeight, doc.scrollHeight, doc.clientHeight),
-      viewportWidth: Math.max(doc.clientWidth, window.innerWidth || 0),
-      devicePixelRatio: window.devicePixelRatio || 1
-    };
-  });
+  const dims = await page.evaluate(() => ({
+    width: Math.max(document.body.scrollWidth, document.documentElement.scrollWidth),
+    height: Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)
+  }));
 
-  const cssWidth  = Math.ceil(dims.scrollWidth);
-  const cssHeight = Math.ceil(dims.scrollHeight);
-  const dpr = dims.devicePixelRatio;
+  const cssWidth = Math.ceil(dims.width);
+  const cssHeight = Math.ceil(dims.height);
   const sliceH = Math.min(SLICE_MAX_HEIGHT, cssHeight);
 
-  console.log(`   📐 Final page dimensions: ${cssWidth} x ${cssHeight} CSS pixels`);
-
-  // If page fits in one shot (small), just take fullPage screenshot (simpler)
+  // Take single screenshot if page is small enough
   if (cssHeight <= page.viewport().height) {
-    const buf = await page.screenshot({ fullPage: false, omitBackground: false, type: "png" });
-    await saveBuffer(outPathBase + ".png", buf);
+    const buf = await page.screenshot({ fullPage: false, type: "png" });
+    await fs.writeFile(outPathBase + ".png", buf);
     return outPathBase + ".png";
   }
 
-  // Create slices by scrolling & screenshotting clipped areas
-  console.log(`   🔪 Creating ${Math.ceil(cssHeight / sliceH)} slices...`);
+  // Capture slices for larger pages
   const sliceFiles = [];
   let offsetY = 0;
-  let sliceIndex = 0;
 
   while (offsetY < cssHeight) {
     const thisSliceHeight = Math.min(sliceH, cssHeight - offsetY);
-
-    // Scroll to offset (CSS pixels)
     await page.evaluate(y => window.scrollTo(0, y), offsetY);
     await sleep(GENTLE_SCROLL_PAUSE);
 
-    // Additional wait for any elements that might still be loading
-    await sleep(200);
+    const buf = await page.screenshot({
+      clip: { x: 0, y: offsetY, width: cssWidth, height: thisSliceHeight },
+      type: "png"
+    });
 
-    // Compute clip in CSS pixels
-    const clip = { x: 0, y: offsetY, width: cssWidth, height: thisSliceHeight };
-
-    // Capture the slice
-    const buf = await page.screenshot({ clip, omitBackground: false, type: "png" });
-
-    const sliceFile = `${outPathBase}.slice-${sliceIndex}.png`;
-    await saveBuffer(sliceFile, buf);
+    const sliceFile = `${outPathBase}.slice-${sliceFiles.length}.png`;
+    await fs.writeFile(sliceFile, buf);
     sliceFiles.push(sliceFile);
 
-    console.log(`   📷 Captured slice ${sliceIndex + 1} (y: ${offsetY}-${offsetY + thisSliceHeight})`);
-
     offsetY += thisSliceHeight;
-    sliceIndex++;
   }
 
-  // Stitch slices with sharp
-  console.log("   🧩 Stitching slices together...");
+  // Stitch slices together
+  const [firstSlice, ...otherSlices] = await Promise.all(
+    sliceFiles.map(f => sharp(f).metadata())
+  );
   
-  // Read first slice to get pixel width
-  const firstMeta = await sharp(sliceFiles[0]).metadata();
-  const pxWidth = firstMeta.width;
-  const pxHeights = [];
-  for (const file of sliceFiles){
-    const m = await sharp(file).metadata();
-    pxHeights.push(m.height);
-  }
-  const totalPxHeight = pxHeights.reduce((s,h)=>s+h, 0);
+  const pxWidth = firstSlice.width;
+  const totalPxHeight = firstSlice.height + otherSlices.reduce((sum, m) => sum + m.height, 0);
 
   const compositor = sharp({
-    create: { width: pxWidth, height: totalPxHeight, channels: 4, background: { r: 255, g: 255, b: 255, alpha: 1 } }
+    create: {
+      width: pxWidth,
+      height: totalPxHeight,
+      channels: 4,
+      background: { r: 255, g: 255, b: 255, alpha: 1 }
+    }
   });
 
-  // Build composite inputs
   let top = 0;
-  const composites = [];
-  for (const file of sliceFiles){
-    const inputBuf = await fs.readFile(file);
-    composites.push({ input: inputBuf, top, left: 0 });
-    const meta = await sharp(inputBuf).metadata();
-    top += meta.height;
-  }
+  const composites = await Promise.all(sliceFiles.map(async file => {
+    const buf = await fs.readFile(file);
+    const pos = { input: buf, top, left: 0 };
+    top += (await sharp(buf).metadata()).height;
+    return pos;
+  }));
 
-  // produce final image
-  const finalBuf = await compositor.composite(composites).png({ quality: 100, compressionLevel: 0 }).toBuffer();
   const finalPath = outPathBase + ".png";
-  await saveBuffer(finalPath, finalBuf);
+  await compositor
+    .composite(composites)
+    .png({ quality: 100 })
+    .toFile(finalPath);
 
-  // cleanup slice files
-  for (const f of sliceFiles){
-    try{ await fs.unlink(f); }catch(e){ /* ignore */ }
-  }
-
-  console.log(`   ✅ Final image: ${pxWidth} x ${totalPxHeight} pixels`);
+  // Cleanup
+  await Promise.all(sliceFiles.map(f => fs.unlink(f).catch(() => {})));
+  
   return finalPath;
 }
 
-async function run(){
-  // Get project and optional start index from command line arguments
-  const targetProject = process.argv[2];
+async function run() {
+  const project = process.argv[2];
   const startFromDashboard = parseInt(process.argv[3]) || 1;
   
-  if (!targetProject) {
+  if (!project || !DASHBOARDS[project]) {
     console.log("Usage: node snapshots.js <project> [startFromDashboard]");
-    console.log(`Available projects: ${Object.keys(PROJECT_NAMES).join(', ')}`);
-    console.log(`Project mapping: ${JSON.stringify(PROJECT_NAMES, null, 2)}`);
-    console.log("Example: node snapshots.js vm14 5  (starts from Dashboard-5)");
+    console.log("Available projects:");
+    console.log(`  ${Object.keys(DASHBOARDS).join('\n  ')}`);
+    console.log("\nExample: node snapshots.js 'VM 14.0' 5");
     process.exit(1);
   }
 
-  console.log('Project configuration:');
-  console.log('- Available projects:', Object.keys(PROJECT_NAMES));
-  console.log('- Project mappings:', PROJECT_NAMES);
-  console.log('- Received project:', targetProject);
-  console.log('- Maps to full name:', PROJECT_NAMES[targetProject]);
-  
-  if (!DASHBOARDS[targetProject]) {
-    console.error(`Error: Unknown project '${targetProject}'. Available projects: ${Object.keys(PROJECT_NAMES).join(', ')}`);
-    console.error('Valid project mappings:', JSON.stringify(PROJECT_NAMES, null, 2));
-    process.exit(1);
-  }
-
-  console.log(`📸 Starting snapshots for project: ${targetProject}`);
   const browser = await puppeteer.launch({
     headless: "new",
     args: ["--no-sandbox", "--disable-setuid-sandbox"]
   });
 
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2,'0');
-  const baseOutDir = path.join(OUT_ROOT, `${y}-${m}`);
-  await ensureDir(baseOutDir);
-
-  // Get the full project name from the short name
-  const fullProjectName = PROJECT_NAMES[targetProject];
-  if (!fullProjectName) {
-    console.error(`Error: Unknown project '${targetProject}'. Available projects: ${Object.keys(PROJECT_NAMES).join(', ')}`);
-    console.error('Valid project mappings:', JSON.stringify(PROJECT_NAMES, null, 2));
-    process.exit(1);
-  }
-
-  // Create project-specific directory path
-  const projectDir = path.join(baseOutDir, fullProjectName);
-  await ensureDir(projectDir);
+  const outDir = path.join(
+    OUT_ROOT,
+    new Date().toISOString().slice(0, 7),
+    project
+  );
+  await ensureDir(outDir);
 
   const page = await browser.newPage();
   await page.setViewport(DEVICE_VIEWPORT);
-
-  // Increase navigation timeout
   page.setDefaultNavigationTimeout(NAV_TIMEOUT);
 
-  // Only process the specified project
-  const project = targetProject;
   const urls = DASHBOARDS[project];
-  console.log(`Starting from Dashboard-${startFromDashboard}`);
+  console.log(`Capturing dashboards for ${project} (${startFromDashboard}-${urls.length})`);
   
-  for (let i = startFromDashboard - 1; i < urls.length; i++){
-      const url = urls[i];
-      const name = `${project}-${i+1}`;
-      console.log(`➡ Capturing ${name} -> ${url}`);
-
-      try {
-        // navigate
-        await page.goto(url, { waitUntil: "networkidle2", timeout: NAV_TIMEOUT }).catch(e=>{ console.warn("→ nav warning:", e.message); });
-
-        // Wait fixed time for Smartsheet to finish loading and settle
-        console.log(`   waiting fixed ${WAIT_AFTER_LOAD_MS/1000}s for Smartsheet to render...`);
+  for (let i = startFromDashboard - 1; i < urls.length; i++) {
+    const dashboardNumber = i + 1;
+    console.log(`\nDashboard ${dashboardNumber}/${urls.length}: ${urls[i]}`);
+    
+    try {
+        // Navigate and wait for initial load
+        await page.goto(url, { waitUntil: "networkidle2", timeout: NAV_TIMEOUT });
+        
+        // Wait for Smartsheet to load and stabilize
+        console.log(`   Waiting ${WAIT_AFTER_LOAD_MS/1000}s for Smartsheet...`);
         await sleep(WAIT_AFTER_LOAD_MS);
-
-        // Gentle extra wait for any animations / rendering
-        await sleep(1500);
-
-        // Try to detect and wait for Smartsheet-specific loading indicators
+        
+        // Handle any remaining loading elements
         await page.evaluate(async () => {
-          // Wait for Smartsheet specific elements to be ready
-          let attempts = 0;
-          while (attempts < 30) {
-            // Check for common Smartsheet loading indicators
-            const loadingElements = document.querySelectorAll([
-              '.loading',
-              '.spinner', 
-              '.smartsheet-loading',
-              '[data-loading="true"]',
-              '.app-loading'
-            ].join(','));
+          const loadingSelectors = [
+            '.loading', '.spinner', '.smartsheet-loading', '[data-loading="true"]',
+            '.app-loading', '.app-loading-screen-2025', '.remove-app-loading-screen-2025',
+            '.app-loading-screen', '.loading-overlay', '.loading-spinner'
+          ];
+          
+          // Wait for loaders to disappear
+          for (let i = 0; i < 30; i++) {
+            const loaders = document.querySelectorAll(loadingSelectors.join(','));
+            if (loaders.length === 0) break;
             
-            if (loadingElements.length === 0) break;
-            
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            attempts++;
+            // Try to hide any remaining loaders
+            loaders.forEach(el => el.style.display = 'none');
+            await new Promise(r => setTimeout(r, 1000));
           }
         });
-
-        // Additional wait for content to render
-        await sleep(2000);
-
-        // Evaluate if Smartsheet still shows a blue loading screen element we can detect - try removing it before capture.
-        try {
-          await page.evaluate(() => {
-            // attempt to hide common Smartsheet loading overlays to avoid capturing them.
-            const selectors = [
-              ".app-loading-screen-2025",
-              ".remove-app-loading-screen-2025",
-              ".app-loading-screen",
-              ".smartsheet-loading",
-              ".loading-overlay",
-              ".loading-spinner"
-            ];
-            for (const s of selectors){
-              const el = document.querySelector(s);
-              if (el) { el.style.display = "none"; }
-            }
-          });
-        } catch(e){ /* ignore */ }
-
-        // Scroll to top before measuring
-        await page.evaluate(()=>window.scrollTo(0,0));
-        await sleep(250);
+        
+        await page.evaluate(() => window.scrollTo(0, 0));
 
         // set filename base with project-specific directory
-        const fullProjectName = PROJECT_NAMES[project];
-        const projectDir = path.join(baseOutDir, fullProjectName);
         const dashboardNumber = i + 1;
         const base = path.join(projectDir, `Dashboard-${dashboardNumber}`);
         const finalPath = await capturePageFullStitched(page, base);

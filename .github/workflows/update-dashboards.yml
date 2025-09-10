@@ -19,6 +19,8 @@ on:
 jobs:
   capture-dashboards:
     runs-on: ubuntu-latest
+    env:
+      PROJECT: ${{ github.event.inputs.project || github.event.client_payload.project }}
     permissions:
       contents: write
     steps:
@@ -67,29 +69,16 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
-          echo "📁 Contents of snapshots directory before commit:"
-          if [ -d snapshots ]; then
-            ls -R snapshots/ || true
-          else
-            echo "No snapshots directory found"
-          fi
+          # Stage all current local changes under the repository (preserve directory names as-is)
+          git add -A || true
 
-          # Add any changes under snapshots/ (force in case files are gitignored)
-          git add -A snapshots/ || true
-
-          # If there are no staged changes, write a small marker file so we can record the run
+          # If there are no staged changes, exit quietly
           if git diff --cached --quiet; then
-            MARKER="snapshots/last-run-$(echo "$PROJECT" | tr ' /' '__').txt"
-            echo "Run: $(date -u +%Y-%m-%dT%H:%M:%SZ) Project: $PROJECT" > "$MARKER"
-            git add "$MARKER"
-          fi
-
-          # Now commit if there are staged changes
-          if git diff --cached --quiet; then
-            echo "ℹ️ Still no changes to commit after marker creation"
+            echo "ℹ️ No changes to commit"
             exit 0
-          else
-            git commit -m "Update ${{ github.event.inputs.project || github.event.client_payload.project }} screenshots [skip ci]"
-            git push
-            echo "✅ Changes committed and pushed successfully"
           fi
+
+          # Commit and push whatever is staged
+          git commit -m "Update ${{ github.event.inputs.project || github.event.client_payload.project }} screenshots [skip ci]"
+          git push
+          echo "✅ Changes committed and pushed successfully"

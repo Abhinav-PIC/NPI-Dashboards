@@ -635,11 +635,14 @@
 
       // Helper to fetch jobs & steps for the run and compute progress
       async function fetchRunJobs(runId) {
+        console.log('Fetching jobs for run ID:', runId);
         const jobsResp = await fetch(`https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards/actions/runs/${runId}/jobs?per_page=100`, {
           headers: { 'Accept': 'application/vnd.github.v3+json', 'Authorization': `Bearer ${token}` }
         });
         if (!jobsResp.ok) throw new Error('Failed to fetch run jobs');
-        return jobsResp.json();
+        const data = await jobsResp.json();
+        console.log('Job status:', data.jobs?.map(j => `${j.name}: ${j.status} (${j.conclusion || 'running'})`));
+        return data;
       }
 
       // Main poll loop: use job steps to compute accurate progress and messages
@@ -657,13 +660,22 @@
             (job.steps || []).forEach(s => allSteps.push({ jobName: job.name, ...s }));
           });
 
-          // Heuristic: steps that mention "dashboard", "capture", "snapshot", "publish", or "upload"
+          // Find steps related to dashboard capture and upload
           const dashSteps = allSteps.filter(s => /dashboard|capture|snapshot|publish|upload/i.test(s.name));
-          const totalSteps = dashSteps.length || (fullProjectName === 'VM 14.0' ? 7 : fullProjectName === 'VM 13.0' ? 5 : 4);
+          console.log('Dashboard steps:', dashSteps.map(s => `${s.name}: ${s.status} (${s.conclusion || 'running'})`));
+          
+          // Calculate expected total based on project
+          const totalSteps = fullProjectName === 'VM 14.0' ? 7 : 
+                           fullProjectName === 'VM 13.0' ? 5 : 
+                           fullProjectName === 'Blaze 1.0' ? 4 : 0;
 
+          // Track completion status
           const completed = dashSteps.filter(s => s.conclusion === 'success').length;
-          const inProgress = dashSteps.findIndex(s => s.status === 'in_progress');
-          const currentIndex = inProgress >= 0 ? inProgress + 1 : (completed < totalSteps ? completed + 1 : totalSteps);
+          const inProgress = dashSteps.find(s => s.status === 'in_progress');
+          const currentIndex = inProgress ? dashSteps.indexOf(inProgress) + 1 : 
+                             (completed < totalSteps ? completed + 1 : totalSteps);
+          
+          console.log(`Progress: ${completed}/${totalSteps} steps done, current step: ${currentIndex}`);
 
           // Find overall run status from job array and ensure we have actual progress
           const runStatus = jobs.length === 0 ? 'queued' :

@@ -36,17 +36,26 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
-      - name: Install Dependencies
+      - name: Restore node_modules cache
+        id: node-mod-cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: Install Dependencies (cache miss only)
+        if: steps.node-mod-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
-          echo "Installing dependencies (npm ci)..."
-          if [[ ! -d "node_modules" || ! -e "package-lock.json" ]]; then
-            echo "Cache miss, installing dependencies..."
-            npm ci --omit=dev --prefer-offline --no-audit --no-fund --no-progress --silent
-          else
-            echo "Cache hit, skipping installation"
-          fi
+          echo "Cache miss, installing dependencies..."
+          npm ci --omit=dev --prefer-offline --no-audit --no-fund --no-progress --silent
+
+      - name: Skip install (cache hit)
+        if: steps.node-mod-cache.outputs.cache-hit == 'true'
+        run: echo "Cache hit, skipping installation"
 
       - name: Capture Screenshots
         shell: bash

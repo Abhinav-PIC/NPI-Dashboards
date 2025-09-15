@@ -449,7 +449,7 @@
  <script>
   // Constants  
   const WORKFLOW_PAT_NEW = '${{ secrets.WORKFLOW_PAT_NEW }}';  // Will be replaced during build
-  const SPLASH_TIMEOUT = 3000;  // Maximum splash screen wait time
+  const SPLASH_TIMEOUT = 3700;  // Maximum splash screen wait time
   
   const ROUTES = ['home', 'vm13', 'blaze', 'vm14'];
   const CONTAINERS = ROUTES.reduce((acc, route) => {
@@ -609,7 +609,7 @@
     // Initialize update state
     updateState = {
       startTime: Date.now(),
-      totalTime: 10 * 60 * 1000, // 10 minutes
+      totalTime: 11 * 60 * 1000, // 11 minutes (so UI shows 10 mins remaining initially)
       isCompleted: false,
       timer: null,
       runId: null,
@@ -617,7 +617,8 @@
       dispatchTime: null,
       lastProgress: 0,
       lastMessage: null,
-      lastMessageTime: 0
+      lastMessageTime: 0,
+      fiveSecondNotified: false
     };
 
     // Immediately show full time so UI shows 10 right away
@@ -675,6 +676,14 @@
       // Progress driven by time (percent) directly for smoothness
       progressBar.style.width = `${percent}%`;
       
+      // Show one-time 5-second warning message before refresh
+      if (typeof timeLeft === 'number' && timeLeft <= 5000 && updateState && !updateState.fiveSecondNotified) {
+        message = 'Finishing — page will refresh in 5s';
+        updateState.fiveSecondNotified = true;
+        // allow immediate message update
+        updateState.lastMessageTime = 0;
+      }
+
       // Update message with debounce to avoid rapid flicker
       // Update message based on percent if not provided explicitly
       if (!message) {

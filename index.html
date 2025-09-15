@@ -674,8 +674,12 @@
           // Compute percent: base 20..95 depending on progress
           const percent = runStatus === 'queued' ? 15 : runStatus === 'in_progress' ? Math.min(20 + Math.round((completed / totalSteps) * 70), 95) : runStatus === 'completed' ? 100 : 50;
 
-          const message = runStatus === 'queued' ? 'Waiting for workflow to start...' : runStatus === 'in_progress' ? 'Updating dashboards...' : runStatus === 'completed' ? 'Update complete!' : 'Processing...';
-          const statusText = runStatus === 'in_progress' ? `Updating dashboard ${Math.min(currentIndex, totalSteps)}/${totalSteps}` : (runStatus === 'queued' ? 'In queue' : (runStatus === 'completed' ? 'Refreshing page...' : ''));
+          const message = runStatus === 'queued' ? 'Waiting for workflow to start...' : 
+                         runStatus === 'in_progress' ? 'Capturing dashboards...' : 
+                         runStatus === 'completed' ? 'Update complete!' : 'Processing...';
+          const statusText = runStatus === 'in_progress' ? `Capturing dashboard ${Math.min(currentIndex, totalSteps)} of ${totalSteps}` : 
+                         (runStatus === 'queued' ? 'Preparing environment...' : 
+                         (runStatus === 'completed' ? 'Refreshing page...' : ''));
 
           updateProgress(percent, message, statusText);
 

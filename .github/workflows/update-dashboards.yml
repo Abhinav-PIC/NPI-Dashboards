@@ -1,9 +1,5 @@
 name: Update Dashboards
-run-name: Update       - name: Install Dependencies
-        shell: bash
-        run: |
-          echo "Installing dependencies..."
-          npm clean-install --omit=dev --prefer-offline --no-audit --no-fund --silentub.event.inputs.project || github.event.client_payload.project }} Dashboards
+run-name: Update ${{ github.event.inputs.project || github.event.client_payload.project }} Dashboards
 
 on:
   workflow_dispatch:
@@ -45,9 +41,10 @@ jobs:
           key: ${{ runner.os }}-modules-${{ hashFiles('package-lock.json') }}
 
       - name: Install Dependencies
+        shell: bash
         run: |
-          if [ ! -d "node_modules" ] || [ ! -e "package-lock.json" ]; then
-            echo "Cache miss, installing dependencies..."
+          echo "Installing dependencies..."
+          npm clean-install --omit=dev --prefer-offline --no-audit --no-fund --silent
             npm ci --omit=dev --prefer-offline --no-audit --no-fund --silent
           else
             echo "Cache hit, skipping installation"

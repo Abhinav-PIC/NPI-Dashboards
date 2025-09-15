@@ -605,21 +605,45 @@
           continue;
         }
 
-        const status = workflow_runs[0].status;
-        if (status !== lastWorkflowStatus) {
+        const run = workflow_runs[0];
+        const status = run.status;
+        
+        // Check for cancellation
+        if (status === 'completed' && run.conclusion === 'cancelled') {
+          throw new Error('Update cancelled');
+        }
+
+        if (status !== lastWorkflowStatus || status === 'in_progress') {
           lastWorkflowStatus = status;
+          
+          // Get total dashboard count based on project
+          const dashboardCount = fullProjectName === 'VM 14.0' ? 7 : 
+                               fullProjectName === 'VM 13.0' ? 5 : 
+                               fullProjectName === 'Blaze 1.0' ? 4 : 0;
+          
+          // Calculate current dashboard based on time elapsed (rough estimation)
+          const elapsedTime = (new Date() - new Date(run.created_at)) / 1000;
+          const estimatedDashboard = Math.min(Math.ceil(elapsedTime / 20), dashboardCount); // assume ~20 seconds per dashboard
+          
           switch (status) {
             case 'in_progress':
-              updateProgress(50, 'Updating dashboards...', `Processing dashboard ${fullProjectName}`);
+              updateProgress(
+                Math.min(20 + (estimatedDashboard / dashboardCount * 60), 80), // progress from 20% to 80%
+                'Updating dashboards...',
+                `Processing dashboard ${estimatedDashboard}/${dashboardCount}`
+              );
               break;
             case 'completed':
-              if (workflow_runs[0].conclusion === 'success') {
+              if (run.conclusion === 'success') {
                 updateProgress(100, 'Update complete!', 'Refreshing page...');
                 setTimeout(() => window.location.reload(), 1000);
                 return;
-              } else if (workflow_runs[0].conclusion === 'failure') {
+              } else if (run.conclusion === 'failure') {
                 throw new Error('Update failed');
               }
+              break;
+            case 'queued':
+              updateProgress(20, 'Waiting for workflow to start...', 'In queue');
               break;
           }
         }
@@ -628,10 +652,11 @@
 
     } catch (error) {
       console.error('Error:', error);
-      messageEl.textContent = '⚠️ Update Failed';
+      const isCancelled = error.message.includes('cancelled');
+      messageEl.textContent = isCancelled ? '⚠️ Update Cancelled' : '⚠️ Update Failed';
       statusEl.textContent = 'Please contact support';
       progressBar.style.width = '100%';
-      progressBar.style.background = '#ff6b6b';
+      progressBar.style.background = isCancelled ? '#f0ad4e' : '#ff6b6b';  // orange for cancelled, red for failed
       overlay.onclick = () => overlay.classList.remove('active');
     }
   }

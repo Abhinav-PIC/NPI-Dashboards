@@ -14,7 +14,7 @@ on:
           - 'VM 14.0'
   repository_dispatch:
     types:
-      - repository_dispatch
+      - dashboard_update
 
 jobs:
   capture-dashboards:

@@ -26,22 +26,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
+          cache-dependency-path: package-lock.json
 
       - name: Install Dependencies
         shell: bash
         run: |
-          if [[ ! -d "node_modules" || ! -e "package-lock.json" ]]; then
-            echo "Cache miss, installing dependencies..."
-            npm ci --omit=dev --prefer-offline --no-audit --no-fund --silent
-          else
-            echo "Cache hit, skipping installation"
-          fi
+          echo "Installing dependencies (npm ci)..."
+          npm ci --omit=dev --prefer-offline --no-audit --no-fund --no-progress --silent
 
       - name: Capture Screenshots
         shell: bash

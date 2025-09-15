@@ -14,8 +14,38 @@
       --philips:#0e5fd8;
       --bar:#0b2b4f;
       --btn:#003366;
-      --btnH:#0059b3;
-      --btnDis:#7a94b8;
+      --      // Local storage keys for run state
+    const workflowKey = 'current_workflow_update';
+    const progressKey = 'current_progress_state';
+    const existingWorkflow = localStorage.getItem(workflowKey);
+    const existingProgress = localStorage.getItem(progressKey);
+
+    // Track our highest seen progress to prevent going backwards
+    let highestProgress = 0;
+    if (existingProgress) {
+      try {
+        const progressData = JSON.parse(existingProgress);
+        highestProgress = progressData.percent || 0;
+      } catch (e) {}
+    }
+
+    if (existingWorkflow) {
+      try {
+        const workflowData = JSON.parse(existingWorkflow);
+        const isRecent = Date.now() - workflowData.timestamp < 15 * 60 * 1000; // 15 minutes
+        if (isRecent) {
+          const lastProgress = workflowData.lastProgress || {};
+          messageEl.textContent = lastProgress.message || 'Resuming update...';
+          statusEl.textContent = lastProgress.status || `Continuing update for ${workflowData.project}`;
+          progressBar.style.width = `${Math.max(highestProgress, lastProgress.percent || 30)}%`;
+        } else {
+          localStorage.removeItem(workflowKey);
+          localStorage.removeItem(progressKey);
+        }
+      } catch (e) { 
+        localStorage.removeItem(workflowKey);
+        localStorage.removeItem(progressKey);
+      }     --btnDis:#7a94b8;
       --warning:#ffcc00;
     }
 
@@ -562,11 +592,36 @@
       } catch (e) { localStorage.removeItem(workflowKey); }
     }
 
+    // Track highest progress and last known state
+    let highestProgress = 0;
+    const progressKey = 'current_progress_state';
+    
+    try {
+      const savedProgress = localStorage.getItem(progressKey);
+      if (savedProgress) {
+        const progressData = JSON.parse(savedProgress);
+        highestProgress = progressData.percent || 0;
+      }
+    } catch (e) {}
+
     const updateProgress = (percent, message, status, color) => {
-      progressBar.style.width = `${percent}%`;
+      // Never go backwards in progress
+      const newPercent = Math.max(percent, highestProgress);
+      highestProgress = newPercent;
+      
+      // Update UI
+      progressBar.style.width = `${newPercent}%`;
       if (message) messageEl.textContent = message;
       if (status !== undefined) statusEl.textContent = status;
       if (color) progressBar.style.background = color;
+      
+      // Save state
+      localStorage.setItem(progressKey, JSON.stringify({
+        percent: newPercent,
+        message,
+        status,
+        timestamp: Date.now()
+      }));
     };
 
     try {
@@ -740,14 +795,49 @@
     }
   }
 
-  // Add page visibility handling
+  // Handle page visibility changes
+  let visibilityTimeout;
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      const workflowData = localStorage.getItem('current_workflow_update');
-      if (workflowData) {
-        const { project } = JSON.parse(workflowData);
-        refreshDashboards(project); // Resume the update check
+      // Clear any pending timeout
+      if (visibilityTimeout) {
+        clearTimeout(visibilityTimeout);
+        visibilityTimeout = null;
       }
+
+      const workflowData = localStorage.getItem('current_workflow_update');
+      const progressData = localStorage.getItem('current_progress_state');
+      
+      if (workflowData && progressData) {
+        try {
+          const { project } = JSON.parse(workflowData);
+          const { percent, message, status } = JSON.parse(progressData);
+          
+          // Restore last known state immediately
+          const overlay = document.getElementById('refresh-overlay');
+          const progressBar = overlay.querySelector('.progress-bar');
+          const messageEl = overlay.querySelector('.message');
+          const statusEl = overlay.querySelector('.status');
+          
+          overlay.classList.add('active');
+          progressBar.style.width = `${percent}%`;
+          messageEl.textContent = message || 'Resuming update...';
+          statusEl.textContent = status || 'Reconnecting...';
+          
+          // Resume polling after a short delay
+          setTimeout(() => refreshDashboards(project), 1000);
+        } catch (e) {
+          console.error('Error resuming workflow:', e);
+          localStorage.removeItem('current_workflow_update');
+          localStorage.removeItem('current_progress_state');
+        }
+      }
+    } else {
+      // Tab hidden - set a timeout to clear progress if we stay hidden too long
+      visibilityTimeout = setTimeout(() => {
+        localStorage.removeItem('current_workflow_update');
+        localStorage.removeItem('current_progress_state');
+      }, 30 * 60 * 1000); // 30 minutes
     }
   });
 </script>

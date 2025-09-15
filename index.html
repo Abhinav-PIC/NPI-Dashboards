@@ -21,17 +21,6 @@
 
     html,body{margin:0;height:100%;overflow:hidden;background:#fff;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;}
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('GitHub API Error Details:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText
-        });
-        throw new Error(`GitHub API Error: ${response.status} - ${errorText}`);
-      }
-      console.log('Workflow trigger response:', response.status);mily:"Segoe UI","Helvetica Neue",Arial,sans-serif;}
-
     /* Veil */
     .veil{position:fixed;inset:0;background:#fff;opacity:1;transition:opacity .6s ease;pointer-events:none;z-index:9998;}
     .veil.hidden{opacity:0}
@@ -90,31 +79,30 @@
       width: 200px;
       background: var(--bar);
       border-radius: 8px;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
       color: white;
       z-index: 9999;
       padding: 12px;
       display: none;
       font-size: 13px;
-      transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
-      animation: float 3s ease-in-out infinite;
-      backdrop-filter: blur(8px);
+      cursor: move;
+      user-select: none;
+      opacity: 0;
+      transition: opacity 0.3s ease-out;
     }
 
     .refresh-status.active {
       display: block;
-      animation: slideIn 0.3s ease-out, float 3s ease-in-out infinite;
+      opacity: 1;
     }
 
-    @keyframes slideIn {
-      from { transform: translateY(-20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    @keyframes float {
-      0% { transform: translateY(0px); }
-      50% { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
-      100% { transform: translateY(0px); }
+    .status-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
 
     .status-message {
@@ -313,8 +301,11 @@
 <body>
   <!-- Refresh Status Box -->
   <div id="refresh-status" class="refresh-status">
+    <div class="status-header">
+      <span>⋮⋮</span>
+      <span class="time-remaining"><span>10</span> min remaining</span>
+    </div>
     <div class="status-message">Initializing update...</div>
-    <div class="time-remaining"><span>10</span> min remaining</div>
     <div class="progress-container">
       <div class="progress-bar"></div>
     </div>
@@ -687,32 +678,23 @@
       // Initialize workflow
       updateProgress(10, 'Initializing workflow...', updateState.totalTime);
       
-      // Initialize workflow
-      updateProgress(10, 'Initializing workflow...', updateState.totalTime);
-      
       const response = await fetch('https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards/dispatches', {
         method: 'POST',
         headers: {
           'Accept': 'application/vnd.github.v3+json',
-          'Authorization': `Bearer ${WORKFLOW_PAT_NEW}`,
+          'Authorization': `token ${WORKFLOW_PAT_NEW}`,
           'Content-Type': 'application/json',
           'X-GitHub-Api-Version': '2022-11-28'
         },
         body: JSON.stringify({
-          event_type: 'repository_dispatch',
-          client_payload: { project: fullProjectName }
+          event_type: 'manual_refresh',
+          client_payload: { 
+            project: fullProjectName,
+            timestamp: Date.now(),
+            action: 'refresh_dashboards'
+          }
         })
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('GitHub API Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText
-        });
-        throw new Error(`GitHub API Error: ${response.status} - ${errorText || response.statusText}`);
-      }
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -912,6 +894,59 @@
       toast.classList.remove('show');
     }, duration);
   }
+
+  // Make status box draggable
+  function makeDraggable(element) {
+    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    const header = element.querySelector('.status-header');
+    
+    if (header) {
+      header.onmousedown = dragMouseDown;
+    } else {
+      element.onmousedown = dragMouseDown;
+    }
+
+    function dragMouseDown(e) {
+      e = e || window.event;
+      e.preventDefault();
+      // get the mouse cursor position at startup
+      pos3 = e.clientX;
+      pos4 = e.clientY;
+      document.onmouseup = closeDragElement;
+      // call a function whenever the cursor moves
+      document.onmousemove = elementDrag;
+    }
+
+    function elementDrag(e) {
+      e = e || window.event;
+      e.preventDefault();
+      // calculate the new cursor position
+      pos1 = pos3 - e.clientX;
+      pos2 = pos4 - e.clientY;
+      pos3 = e.clientX;
+      pos4 = e.clientY;
+      // set the element's new position
+      const newTop = (element.offsetTop - pos2);
+      const newLeft = (element.offsetLeft - pos1);
+      
+      // Keep within viewport bounds
+      const maxX = window.innerWidth - element.offsetWidth;
+      const maxY = window.innerHeight - element.offsetHeight;
+      
+      element.style.top = Math.min(maxY, Math.max(0, newTop)) + "px";
+      element.style.left = Math.min(maxX, Math.max(0, newLeft)) + "px";
+      element.style.right = 'auto';
+    }
+
+    function closeDragElement() {
+      document.onmouseup = null;
+      document.onmousemove = null;
+    }
+  }
+
+  // Initialize draggable status box
+  const statusBox = document.getElementById('refresh-status');
+  if (statusBox) makeDraggable(statusBox);
 
   // Listen for storage changes in other tabs
   window.addEventListener('storage', (e) => {

@@ -17,7 +17,6 @@
       --btnH:#0059b3;
       --btnDis:#7a94b8;
       --warning:#ffcc00;
-      --error:#ff6b6b;
     }
 
     html,body{margin:0;height:100%;overflow:hidden;background:#fff;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;}
@@ -72,13 +71,11 @@
     @keyframes tagFade{to{opacity:0;transform:translateX(-20px)}}
     @keyframes fadeSplash{to{opacity:0;visibility:hidden}}
 
-
     /* Refresh Overlay */
     .refresh-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.6); /* restore dark translucent overlay */
-      backdrop-filter: blur(6px);   /* subtle blur like before */
+      background: rgba(0,0,0,0.85);
       display: none;
       flex-direction: column;
       align-items: center;
@@ -123,15 +120,7 @@
       width: 0%;
       height: 100%;
       background: var(--philips);
-      transition: width 0.5s ease, background-color 0.3s ease;
-    }
-
-    .refresh-overlay .progress-bar.warning {
-      background: var(--warning);
-    }
-
-    .refresh-overlay .progress-bar.error {
-      background: var(--error);
+      transition: width 0.5s ease;
     }
 
     .refresh-overlay .status {
@@ -179,16 +168,6 @@
       box-shadow: 0 4px 12px rgba(0,0,0,.2);
       z-index: 1000;
       margin-top: 2px;
-    }
-
-    /* Add padding to create hoverable area between button and dropdown */
-    .nav-item::after {
-      content: '';
-      position: absolute;
-      height: 10px;
-      left: 0;
-      right: 0;
-      bottom: -10px;
     }
 
     /* Add padding to create hoverable area between button and dropdown */
@@ -320,26 +299,6 @@
   </div>
   <div class="veil" id="veil"></div>
 
-  <!-- Fail-safe: remove splash and veil if main JS fails to run -->
-  <script>
-    (function(){
-      try {
-        // If the main script doesn't run (syntax error or other), ensure the splash is removed
-        setTimeout(function(){
-          var s = document.getElementById('splash');
-          var v = document.getElementById('veil');
-          if (s && s.parentNode) {
-            s.classList.add('fade-out');
-            setTimeout(function(){ try { s.remove(); } catch(e){}; try { v && v.remove(); } catch(e){}; 
-              var top = document.getElementById('topbar'); if(top) top.style.opacity = '1';
-              var st = document.getElementById('stage'); if(st) st.style.opacity = '1';
-            }, 420);
-          }
-        }, 3500);
-      } catch(e) { console.error('Fail-safe splash removal failed', e); }
-    })();
-  </script>
-
   <!-- NAVIGATION -->
   <div class="top" id="topbar">
     <a class="btn" href="#home" data-route="home">Home</a>
@@ -444,8 +403,6 @@
   // Constants  
   const WORKFLOW_PAT_NEW = '${{ secrets.WORKFLOW_PAT_NEW }}';  // Will be replaced during build
   const SPLASH_TIMEOUT = 3000;  // Maximum splash screen wait time
-  const REPO_API_BASE = 'https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards';
-  const __dashboardPollers = window.__dashboardPollers || (window.__dashboardPollers = {});
   
   const ROUTES = ['home', 'vm13', 'blaze', 'vm14'];
   const CONTAINERS = ROUTES.reduce((acc, route) => {
@@ -580,275 +537,173 @@
   }
 
   async function refreshDashboards(project) {
-    console.log('Starting refresh for project:', project);
-    
     const overlay = document.getElementById('refresh-overlay');
     const messageEl = overlay.querySelector('.message');
     const progressBar = overlay.querySelector('.progress-bar');
     const statusEl = overlay.querySelector('.status');
-    
-    const showError = (message, isWarning = false) => {
-      messageEl.textContent = isWarning ? '⚠️ Update Cancelled' : '⚠️ Dashboard Update Failed';
-      statusEl.style.textAlign = 'center';
-      statusEl.innerHTML = `${message}<br><span style="display: block">(Click anywhere to dismiss)</span>`;
-      progressBar.style.width = '100%';
-      progressBar.className = `progress-bar ${isWarning ? 'warning' : 'error'}`;
-      overlay.onclick = () => {
-        overlay.classList.remove('active');
-        progressBar.style.background = 'var(--philips)';
-      };
-    };
-    
-    try {
-      overlay.classList.add('active');
-      overlay.onclick = null;
-      
-      // Reset any previous state
-      progressBar.className = 'progress-bar';
-      progressBar.style.width = '0%';
-      statusEl.style.textAlign = '';
+    overlay.classList.add('active');
+    overlay.onclick = null;
 
-    const storageKey = 'current_workflow_update';
-    let stored = null;
-    try { stored = JSON.parse(localStorage.getItem(storageKey) || 'null'); } catch(e) { stored = null; }
+    // Local storage key for current run
+    const workflowKey = 'current_workflow_update';
+    const existingWorkflow = localStorage.getItem(workflowKey);
 
-    // Prevent starting a second poller for the same project
-    if (__dashboardPollers[project]?.active) {
-      messageEl.textContent = 'Update already in progress...';
-      statusEl.textContent = `Tracking ${project}`;
-      return;
+    if (existingWorkflow) {
+      try {
+        const workflowData = JSON.parse(existingWorkflow);
+        const isRecent = Date.now() - workflowData.timestamp < 15 * 60 * 1000; // 15 minutes
+        if (isRecent) {
+          messageEl.textContent = 'Resuming update...';
+          statusEl.textContent = `Continuing update for ${workflowData.project}`;
+          progressBar.style.width = '30%';
+        } else {
+          localStorage.removeItem(workflowKey);
+        }
+      } catch (e) { localStorage.removeItem(workflowKey); }
     }
 
-    // Dashboard counts per project
-    const dashboardCounts = {
-      'VM 13.0': 5,
-      'Blaze 1.0': 4,
-      'VM 14.0': 7
-    };
-
-    // Track monotonic progress and workflow stages
-    let lastProgress = 0;
-    let currentDashboardIndex = 0;
-    const totalDashboards = dashboardCounts[fullProjectName] || 4;
-
-    const stages = {
-      INIT: { msg: 'Initializing workflow...', status: 'Preparing environment' },
-      SETUP: { msg: 'Setting up capture environment...', status: 'Installing dependencies' },
-      QUEUE: { msg: 'Waiting for workflow to start...', status: 'In queue...' },
-      CAPTURE_PREP: { msg: 'Preparing to capture dashboards...', status: 'Starting browser' },
-      CAPTURING: (current, total) => ({
-        msg: `Capturing dashboard ${current}/${total}...`,
-        status: `Processing screenshot ${current} of ${total}`
-      }),
-      PROCESSING: { msg: 'Processing captured images...', status: 'Optimizing images' },
-      FINALIZING: { msg: 'Finalizing updates...', status: 'Almost done' },
-      COMPLETE: { msg: 'Update complete!', status: 'Refreshing page...' }
-    };
-
-    const setProgress = (percent, stage, detail = null) => {
-      const safe = Math.max(lastProgress, Math.min(100, Math.round(percent || 0)));
-      lastProgress = safe;
-      progressBar.style.width = `${safe}%`;
-      
-      if (stage) {
-        const stageInfo = typeof stages[stage] === 'function' 
-          ? stages[stage](detail?.current, detail?.total)
-          : stages[stage];
-        
-        if (stageInfo) {
-          messageEl.textContent = stageInfo.msg;
-          statusEl.textContent = stageInfo.status;
-        }
-      }
-    };
-
-    const apiFetch = async (url, opts = {}) => {
-      console.log(`API Request to: ${url}`);
-      const response = await fetch(url, Object.assign({}, opts, { 
-        headers: Object.assign({}, (opts.headers || {}), { 
-          'Accept': 'application/vnd.github.v3+json', 
-          'Authorization': `Bearer ${WORKFLOW_PAT_NEW}` 
-        }) 
-      }));
-      console.log(`API Response status: ${response.status}`);
-      if (!response.ok && response.status !== 204) {
-        console.error('API Error:', await response.text());
-      }
-      return response;
+    const updateProgress = (percent, message, status, color) => {
+      progressBar.style.width = `${percent}%`;
+      if (message) messageEl.textContent = message;
+      if (status !== undefined) statusEl.textContent = status;
+      if (color) progressBar.style.background = color;
     };
 
     try {
-      if (!WORKFLOW_PAT_NEW || WORKFLOW_PAT_NEW === '${{ secrets.WORKFLOW_PAT_NEW }}') {
-        console.error('GitHub token not configured');
+      // Allow a runtime token via URL for local testing: ?token=xxx
+      const urlToken = new URLSearchParams(location.search).get('token');
+      const token = urlToken || WORKFLOW_PAT_NEW;
+      if (!token || token === '${{ secrets.WORKFLOW_PAT_NEW }}') {
         throw new Error('GitHub token not properly configured');
       }
 
-      const fullProjectName = (typeof project === 'string') ? project.replace(/^\s+|\s+$/g, '').replace(/^['"]|['"]$/g, '') : project;
-      if (!['VM 13.0','Blaze 1.0','VM 14.0'].includes(fullProjectName)) throw new Error(`Invalid project name: ${fullProjectName}`);
-
-      // If we have a stored run and it's recent, try to resume it
-      if (stored && stored.project === fullProjectName && (Date.now() - (stored.timestamp || 0)) < (1000 * 60 * 60) && stored.runId) {
-        setProgress(20, 'Resuming workflow...', `Resuming ${stored.project}`);
-      } else {
-        // Start a new repository_dispatch
-        setProgress(10, 'Preparing environment...', 'Starting workflow');
-        const payload = {
-          event_type: 'dashboard_update',
-          client_payload: { project: fullProjectName, timestamp: Date.now() }
-        };
-
-        const dispatchResp = await apiFetch(`${REPO_API_BASE}/dispatches`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        console.log('Dispatch response status:', dispatchResp.status);
-        if (!dispatchResp.ok && dispatchResp.status !== 204) {
-          const errText = await dispatchResp.text();
-          console.error('Dispatch error body:', errText);
-          throw new Error(`GitHub dispatch failed: ${dispatchResp.status} ${errText}`);
-        }
-
-        stored = { project: fullProjectName, timestamp: Date.now(), runId: stored?.runId || null };
-        localStorage.setItem(storageKey, JSON.stringify(stored));
-        setProgress(20, 'Setting up capture environment...', 'Installing dependencies...');
+      const fullProjectName = (typeof project === 'string') ? project.trim().replace(/^['"]|['"]$/g, '') : project;
+      if (!['VM 13.0','Blaze 1.0','VM 14.0'].includes(fullProjectName)) {
+        throw new Error(`Invalid project name: ${fullProjectName}`);
       }
 
-      // mark poller active
-      __dashboardPollers[project] = { active: true };
+      updateProgress(8, 'Initializing workflow...', 'Starting update process');
 
-      // Poll for the run id (if we don't have one yet) and then poll run/jobs to compute progress
-      let runId = stored?.runId || null;
-      const maxPolls = 60; // ~5 minutes with 5s waits
-      for (let attempt = 0; attempt < maxPolls && __dashboardPollers[project].active; attempt++) {
+      // Trigger repository_dispatch
+      const dispatchResp = await fetch('https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards/dispatches', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'X-GitHub-Api-Version': '2022-11-28'
+        },
+        body: JSON.stringify({ event_type: 'repository_dispatch', client_payload: { project: fullProjectName } })
+      });
+
+      if (!dispatchResp.ok) {
+        const text = await dispatchResp.text();
+        throw new Error(`GitHub dispatch failed: ${dispatchResp.status} ${text}`);
+      }
+
+      updateProgress(18, 'Installing dependencies...', 'Preparing runner');
+
+      // Poll for the run started by our dispatch. We'll try to find the latest run for this event.
+      let runId = null;
+      for (let attempt = 0; attempt < 36; attempt++) {
         await new Promise(r => setTimeout(r, 5000));
+        const runsResp = await fetch('https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards/actions/runs?event=repository_dispatch&per_page=5', {
+          headers: { 'Accept': 'application/vnd.github.v3+json', 'Authorization': `Bearer ${token}` }
+        });
+        if (!runsResp.ok) continue;
+        const runsJson = await runsResp.json();
+        const run = (runsJson.workflow_runs || []).find(r => r.head_commit && r.head_commit.message && r.head_commit.message.includes(fullProjectName)) || runsJson.workflow_runs?.[0];
+        if (run && run.id) { runId = run.id; break; }
+      }
 
+      if (!runId) {
+        updateProgress(30, 'Capturing latest data...', 'Waiting for workflow to start');
+        throw new Error('Failed to find workflow run');
+      }
+
+      // persist run info so we can resume
+      localStorage.setItem(workflowKey, JSON.stringify({ id: runId, project: fullProjectName, timestamp: Date.now() }));
+
+      // Helper to fetch jobs & steps for the run and compute progress
+      async function fetchRunJobs(runId) {
+        const jobsResp = await fetch(`https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards/actions/runs/${runId}/jobs?per_page=100`, {
+          headers: { 'Accept': 'application/vnd.github.v3+json', 'Authorization': `Bearer ${token}` }
+        });
+        if (!jobsResp.ok) throw new Error('Failed to fetch run jobs');
+        return jobsResp.json();
+      }
+
+      // Main poll loop: use job steps to compute accurate progress and messages
+      for (let i = 0; i < 120; i++) {
+        await new Promise(r => setTimeout(r, 4000));
         try {
-          if (!runId) {
-            // get latest runs triggered by repository_dispatch
-            const runsResp = await apiFetch(`${REPO_API_BASE}/actions/runs?event=repository_dispatch&per_page=5`);
-            if (!runsResp.ok) throw new Error('Failed to list workflow runs');
-            const runsJson = await runsResp.json();
-            const candidate = (runsJson.workflow_runs || []).find(r => new Date(r.created_at).getTime() >= (stored?.timestamp || 0));
-            if (candidate) {
-              runId = candidate.id;
-              stored.runId = runId;
-              stored.timestamp = Date.now();
-              localStorage.setItem(storageKey, JSON.stringify(stored));
-              setProgress(30, 'SETUP');
-            } else {
-              // still waiting for run to appear
-              setProgress(Math.min(lastProgress + 1, 35), 'QUEUE');
-              continue;
-            }
+          const runJobs = await fetchRunJobs(runId);
+          const jobs = runJobs.jobs || [];
+
+          // Flatten steps and filter ones that look like dashboard capture steps
+          const allSteps = [];
+          jobs.forEach(job => {
+            (job.steps || []).forEach(s => allSteps.push({ jobName: job.name, ...s }));
+          });
+
+          // Heuristic: steps that mention "dashboard", "capture", "snapshot", "publish", or "upload"
+          const dashSteps = allSteps.filter(s => /dashboard|capture|snapshot|publish|upload/i.test(s.name));
+          const totalSteps = dashSteps.length || (fullProjectName === 'VM 14.0' ? 7 : fullProjectName === 'VM 13.0' ? 5 : 4);
+
+          const completed = dashSteps.filter(s => s.conclusion === 'success').length;
+          const inProgress = dashSteps.findIndex(s => s.status === 'in_progress');
+          const currentIndex = inProgress >= 0 ? inProgress + 1 : (completed < totalSteps ? completed + 1 : totalSteps);
+
+          // Find overall run status from job array
+          const runStatus = jobs.some(j => j.status === 'in_progress') ? 'in_progress' : (jobs.every(j => j.conclusion === 'success') ? 'completed' : (jobs.some(j => j.conclusion === 'failure') ? 'failed' : 'queued'));
+
+          // Compute percent: base 20..95 depending on progress
+          const percent = runStatus === 'queued' ? 15 : runStatus === 'in_progress' ? Math.min(20 + Math.round((completed / totalSteps) * 70), 95) : runStatus === 'completed' ? 100 : 50;
+
+          const message = runStatus === 'queued' ? 'Waiting for workflow to start...' : runStatus === 'in_progress' ? 'Updating dashboards...' : runStatus === 'completed' ? 'Update complete!' : 'Processing...';
+          const statusText = runStatus === 'in_progress' ? `Updating dashboard ${Math.min(currentIndex, totalSteps)}/${totalSteps}` : (runStatus === 'queued' ? 'In queue' : (runStatus === 'completed' ? 'Refreshing page...' : ''));
+
+          updateProgress(percent, message, statusText);
+
+          if (runStatus === 'completed' && jobs.every(j => j.conclusion === 'success')) {
+            localStorage.removeItem(workflowKey);
+            setTimeout(() => window.location.reload(), 900);
+            return;
           }
 
-          // fetch run details
-          const runResp = await apiFetch(`${REPO_API_BASE}/actions/runs/${runId}`);
-          if (!runResp.ok) throw new Error('Failed to fetch workflow run');
-          const runJson = await runResp.json();
-
-          // If run completed, handle conclusion
-          if (runJson.status === 'completed') {
-            if (runJson.conclusion === 'success') {
-              setProgress(100, 'Update complete!', 'Refreshing...');
-              localStorage.removeItem(storageKey);
-              __dashboardPollers[project].active = false;
-              setTimeout(() => window.location.reload(), 1000);
-              return;
-            } else {
-              // cancelled or failure
-              throw new Error(`Update ${runJson.conclusion || 'failed'}`);
-            }
+          if (runStatus === 'failed' || jobs.some(j => j.conclusion === 'failure')) {
+            throw new Error('Update failed');
           }
 
-          // Run is in_progress or queued. Use jobs/steps to compute a reliable progress percentage
-          const jobsResp = await apiFetch(`${REPO_API_BASE}/actions/runs/${runId}/jobs?per_page=100`);
-          if (!jobsResp.ok) {
-            // fallback to conservative progress based on status
-            setProgress(Math.max(lastProgress, 40), 'Updating dashboards...', 'In progress');
-            continue;
-          }
-          const jobsJson = await jobsResp.json();
-          const jobs = jobsJson.jobs || [];
-
-          // Sum steps across jobs
-          let totalSteps = 0;
-          let completedSteps = 0;
-          for (const job of jobs) {
-            if (Array.isArray(job.steps) && job.steps.length) {
-              totalSteps += job.steps.length;
-              completedSteps += job.steps.filter(s => s.status === 'completed').length;
-            } else {
-              // If steps are not present, consider job complete if status==completed
-              totalSteps += 1;
-              if (job.status === 'completed') completedSteps += 1;
-            }
-          }
-
-          // compute a percent between 30..95 while running to leave headroom for queue/finish
-          const base = 30; // initial work
-          const headroom = 65;
-          let computed = totalSteps > 0 ? base + (completedSteps / totalSteps) * headroom : base;
-          computed = Math.min(95, computed);
-          
-          // Map workflow progress to dashboard progress
-          const estimatedDashboards = Math.ceil((completedSteps / totalSteps) * totalDashboards);
-          if (estimatedDashboards === 0) {
-            setProgress(computed, 'CAPTURE_PREP');
-          } else if (estimatedDashboards < totalDashboards) {
-            // Update to show which dashboard we're capturing
-            if (estimatedDashboards > currentDashboardIndex) {
-              currentDashboardIndex = estimatedDashboards;
-            }
-            setProgress(computed, 'CAPTURING', { current: currentDashboardIndex, total: totalDashboards });
-          } else {
-            setProgress(computed, 'Processing captured images...', 'Almost done!');
-          }
-
-          // continue polling until completed
-        } catch (innerErr) {
-          console.error('Poll error:', innerErr);
-          // don't decrease progress on transient errors; show a message
-          setProgress(Math.max(lastProgress, 40), 'Checking workflow status...', 'Retrying...');
+        } catch (err) {
+          console.error('Polling error:', err);
+          // continue polling a few more times, but show a message
+          updateProgress(50, 'Checking status...', 'Encountered a temporary error');
         }
       }
 
-      // timed out
+      // timeout
+      updateProgress(100, '⚠️ Update Timed Out', 'Please try again', '#f0ad4e');
+      localStorage.removeItem(workflowKey);
       throw new Error('Update timed out');
+
     } catch (error) {
       console.error('Error:', error);
-      // determine type
-      const message = (error && error.message || '').toLowerCase();
-      const isCancelled = message.includes('cancel') || message.includes('cancelled');
-      const isFailed = message.includes('failed') || message.includes('timed out') || message.includes('error');
-
-      // clear stored state
-      localStorage.removeItem(storageKey);
-      if (__dashboardPollers[project]) __dashboardPollers[project].active = false;
-
-      messageEl.textContent = isCancelled ? '⚠️ Update Cancelled' : '⚠️ Dashboard Update Failed';
-      statusEl.style.textAlign = 'center';
-      statusEl.innerHTML = `${isCancelled ? 'Update was cancelled' : 'An error occurred while updating dashboards'}<br><span style="display: block">(Click anywhere to dismiss)</span>`;
-      progressBar.style.width = '100%';
-      progressBar.className = `progress-bar ${isCancelled ? 'warning' : 'error'}`;
-      overlay.onclick = () => {
-        overlay.classList.remove('active');
-        progressBar.style.background = 'var(--philips)';
-      };
-    } finally {
-      if (__dashboardPollers[project]) __dashboardPollers[project].active = false;
+      localStorage.removeItem(workflowKey);
+      const msg = (error.message || '').toLowerCase();
+      const isCancelled = msg.includes('cancel');
+      updateProgress(100, isCancelled ? '⚠️ Update Cancelled' : '⚠️ Update Failed', 'Please contact support', isCancelled ? '#f0ad4e' : '#ff6b6b');
+      overlay.onclick = () => { overlay.classList.remove('active'); progressBar.style.background = 'var(--philips)'; };
     }
   }
 
-  // Resume polling only if there's a stored run and no active poller
+  // Add page visibility handling
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      const stored = (() => { try { return JSON.parse(localStorage.getItem('current_workflow_update') || 'null'); } catch (e) { return null; } })();
-      if (stored && stored.project && (!__dashboardPollers[stored.project] || !__dashboardPollers[stored.project].active)) {
-        // Resume with stored state
-        refreshDashboards(stored.project);
+      const workflowData = localStorage.getItem('current_workflow_update');
+      if (workflowData) {
+        const { project } = JSON.parse(workflowData);
+        refreshDashboards(project); // Resume the update check
       }
     }
   });

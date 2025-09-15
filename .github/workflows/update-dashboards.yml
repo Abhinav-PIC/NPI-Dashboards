@@ -94,5 +94,22 @@ jobs:
 
           MONTH=$(date -u +%Y-%m)
           git add "snapshots/$MONTH/${PROJECT}"
-          git commit -m "Update ${PROJECT} screenshots [skip ci]" --allow-empty
-          git push
+          # commit if there are changes; allow-empty keeps old behaviour but ignore error if nothing to commit
+          git commit -m "Update ${PROJECT} screenshots [skip ci]" --allow-empty || true
+
+          # Ensure we have latest remote refs and rebase local branch to avoid push rejections when remote advanced
+          git fetch origin main
+          # Try to rebase local commits on top of remote main; if rebase fails, fall back to merge to avoid blocking
+          if git rev-parse --verify HEAD >/dev/null 2>&1; then
+            if ! git rebase origin/main; then
+              echo "Rebase failed, falling back to merge";
+              git rebase --abort || true;
+              git pull --no-rebase --no-edit || true;
+            fi
+          fi
+
+          # Push; if a fast-forward rejection happens, try safe force-with-lease to avoid losing concurrent commits
+          if ! git push; then
+            echo "Push rejected, attempting push --force-with-lease";
+            git push --force-with-lease
+          fi

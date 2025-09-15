@@ -595,10 +595,11 @@
           'X-GitHub-Api-Version': '2022-11-28'
         },
         body: JSON.stringify({ 
-          event_type: 'update_dashboards',  // Changed to match workflow trigger
+          event_type: 'repository_dispatch',  // Changed back to standard event type
           client_payload: { 
             project: fullProjectName,
-            timestamp: Date.now()  // Add timestamp to ensure uniqueness
+            timestamp: Date.now(),
+            command: 'update_dashboards'  // Added command identifier
           } 
         })
       });

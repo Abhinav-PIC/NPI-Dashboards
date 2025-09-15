@@ -585,6 +585,7 @@
       updateProgress(8, 'Initializing workflow...', 'Starting update process');
 
       // Trigger repository_dispatch
+      console.log('Triggering workflow for project:', fullProjectName);
       const dispatchResp = await fetch('https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards/dispatches', {
         method: 'POST',
         headers: {
@@ -593,8 +594,16 @@
           'Content-Type': 'application/json',
           'X-GitHub-Api-Version': '2022-11-28'
         },
-        body: JSON.stringify({ event_type: 'repository_dispatch', client_payload: { project: fullProjectName } })
+        body: JSON.stringify({ 
+          event_type: 'update_dashboards',  // Changed to match workflow trigger
+          client_payload: { 
+            project: fullProjectName,
+            timestamp: Date.now()  // Add timestamp to ensure uniqueness
+          } 
+        })
       });
+      
+      console.log('Dispatch response status:', dispatchResp.status);
 
       if (!dispatchResp.ok) {
         const text = await dispatchResp.text();
@@ -637,8 +646,10 @@
       for (let i = 0; i < 120; i++) {
         await new Promise(r => setTimeout(r, 4000));
         try {
+          console.log('Fetching jobs for run:', runId);
           const runJobs = await fetchRunJobs(runId);
           const jobs = runJobs.jobs || [];
+          console.log('Found jobs:', jobs.length);
 
           // Flatten steps and filter ones that look like dashboard capture steps
           const allSteps = [];

@@ -695,9 +695,19 @@
 
           updateProgress(percent, message, statusText);
 
-          // Only complete when we have actually finished all steps
-          if (runStatus === 'completed' && completed >= totalSteps) {
-            console.log('All dashboard steps completed:', completed, 'of', totalSteps);
+          // Verify all required steps are actually complete
+          const allStepsComplete = dashSteps.length >= totalSteps && 
+                                 completed >= totalSteps && 
+                                 !dashSteps.some(s => s.status === 'in_progress' || !s.conclusion);
+          
+          // Only complete when every job and step is done
+          if (runStatus === 'completed' && allStepsComplete) {
+            console.log('Workflow status:', {
+              totalExpectedSteps: totalSteps,
+              foundSteps: dashSteps.length,
+              completedSteps: completed,
+              stepStatus: dashSteps.map(s => `${s.name}: ${s.status} (${s.conclusion || 'running'})`)
+            });
             localStorage.removeItem(workflowKey);
             // Wait longer to ensure everything is done
             setTimeout(() => window.location.reload(), 3000);

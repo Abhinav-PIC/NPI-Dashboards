@@ -660,6 +660,29 @@
 
   function minimizeRefreshStatus() {
     document.getElementById('refresh-status').classList.remove('active');
+    // Clear the active state but keep the timing information
+    const state = JSON.parse(localStorage.getItem('refresh_state') || '{}');
+    localStorage.setItem('refresh_state', JSON.stringify({
+      ...state,
+      isActive: false
+    }));
+  }
+
+  function resumeRefreshStatus() {
+    const state = JSON.parse(localStorage.getItem('refresh_state') || '{}');
+    if (state.startTime) {
+      const elapsed = Date.now() - state.startTime;
+      if (elapsed < AUTO_REFRESH_DELAY) {
+        const statusPanel = document.getElementById('refresh-status');
+        statusPanel.classList.add('active');
+        localStorage.setItem('refresh_state', JSON.stringify({
+          ...state,
+          isActive: true
+        }));
+        return true;
+      }
+    }
+    return false;
   }
 
   async function refreshDashboards(project) {
@@ -675,10 +698,24 @@
       clearTimeout(refreshTimer);
     }
 
+    // Store refresh state in localStorage
+    const storeRefreshState = () => {
+      localStorage.setItem('refresh_state', JSON.stringify({
+        startTime: Date.now(),
+        project,
+        isActive: true
+      }));
+    };
+    storeRefreshState();
+
     // Set up auto-refresh timer and countdown
-    const startTime = Date.now();
     const updateCountdown = () => {
-      const elapsed = Date.now() - startTime;
+      const state = JSON.parse(localStorage.getItem('refresh_state') || '{}');
+      if (!state.isActive) {
+        minimizeRefreshStatus();
+        return;
+      }
+      const elapsed = Date.now() - state.startTime;
       const remaining = AUTO_REFRESH_DELAY - elapsed;
       
       if (remaining <= 0) {
@@ -895,13 +932,27 @@
     }
   }
 
+  // Initialize check on page load
+  window.addEventListener('load', () => {
+    const state = JSON.parse(localStorage.getItem('refresh_state') || '{}');
+    if (state.startTime) {
+      const elapsed = Date.now() - state.startTime;
+      if (elapsed >= AUTO_REFRESH_DELAY) {
+        // If we missed the refresh while away, do it now
+        window.location.reload();
+      } else if (state.isActive) {
+        // Resume the countdown
+        resumeRefreshStatus();
+      }
+    }
+  });
+
   // Add page visibility handling
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      // Check if there's an ongoing refresh
-      const refreshStartTime = localStorage.getItem('refresh_start_time');
-      if (refreshStartTime) {
-        const elapsedTime = Date.now() - parseInt(refreshStartTime);
+      const state = JSON.parse(localStorage.getItem('refresh_state') || '{}');
+      if (state.startTime) {
+        const elapsed = Date.now() - state.startTime;
         
         // If more than 10 minutes have passed since refresh started
         if (elapsedTime >= AUTO_REFRESH_DELAY) {

@@ -559,17 +559,33 @@
   }
 
   async function refreshDashboards(project) {
+    console.log('Starting refresh for project:', project);
+    
     const overlay = document.getElementById('refresh-overlay');
     const messageEl = overlay.querySelector('.message');
     const progressBar = overlay.querySelector('.progress-bar');
     const statusEl = overlay.querySelector('.status');
-    overlay.classList.add('active');
-    overlay.onclick = null;
     
-    // Reset any previous state
-    progressBar.className = 'progress-bar';
-    progressBar.style.width = '0%';
-    statusEl.style.textAlign = '';
+    const showError = (message, isWarning = false) => {
+      messageEl.textContent = isWarning ? '⚠️ Update Cancelled' : '⚠️ Dashboard Update Failed';
+      statusEl.style.textAlign = 'center';
+      statusEl.innerHTML = `${message}<br><span style="display: block">(Click anywhere to dismiss)</span>`;
+      progressBar.style.width = '100%';
+      progressBar.className = `progress-bar ${isWarning ? 'warning' : 'error'}`;
+      overlay.onclick = () => {
+        overlay.classList.remove('active');
+        progressBar.style.background = 'var(--philips)';
+      };
+    };
+    
+    try {
+      overlay.classList.add('active');
+      overlay.onclick = null;
+      
+      // Reset any previous state
+      progressBar.className = 'progress-bar';
+      progressBar.style.width = '0%';
+      statusEl.style.textAlign = '';
 
     const storageKey = 'current_workflow_update';
     let stored = null;
@@ -625,10 +641,25 @@
       }
     };
 
-    const apiFetch = (url, opts = {}) => fetch(url, Object.assign({}, opts, { headers: Object.assign({}, (opts.headers || {}), { 'Accept': 'application/vnd.github.v3+json', 'Authorization': `Bearer ${WORKFLOW_PAT_NEW}` }) }));
+    const apiFetch = async (url, opts = {}) => {
+      console.log(`API Request to: ${url}`);
+      const response = await fetch(url, Object.assign({}, opts, { 
+        headers: Object.assign({}, (opts.headers || {}), { 
+          'Accept': 'application/vnd.github.v3+json', 
+          'Authorization': `Bearer ${WORKFLOW_PAT_NEW}` 
+        }) 
+      }));
+      console.log(`API Response status: ${response.status}`);
+      if (!response.ok && response.status !== 204) {
+        console.error('API Error:', await response.text());
+      }
+      return response;
+    };
 
     try {
-      if (!WORKFLOW_PAT_NEW || WORKFLOW_PAT_NEW === '${{ secrets.WORKFLOW_PAT_NEW }}') throw new Error('GitHub token not properly configured');
+      if (!WORKFLOW_PAT_NEW || WORKFLOW_PAT_NEW === '${{ secrets.WORKFLOW_PAT_NEW }}') {
+        console.error('GitHub token not configured');
+        throw new Error('GitHub token not properly configured');
 
       const fullProjectName = (typeof project === 'string') ? project.replace(/^\s+|\s+$/g, '').replace(/^['"]|['"]$/g, '') : project;
       if (!['VM 13.0','Blaze 1.0','VM 14.0'].includes(fullProjectName)) throw new Error(`Invalid project name: ${fullProjectName}`);

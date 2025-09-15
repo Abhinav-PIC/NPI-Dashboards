@@ -162,7 +162,7 @@
       width: 0%;
       height: 100%;
       background: var(--philips);
-      transition: width 0.5s ease;
+      transition: width 5s linear; /* smoother, slower transition (now 5s) */
     }
 
     .status-footer {
@@ -315,7 +315,7 @@
   <div id="refresh-status" class="refresh-status" aria-live="polite">
     <div class="status-header">
       <span class="drag-handle">⋮⋮</span>
-      <div class="time-remaining"><span class="time-num">10</span> <span class="time-label">min remaining</span></div>
+      <div class="time-remaining"><span class="time-display">10:00</span></div>
       <button id="cancel-update" class="btn cancel" title="Cancel update">Cancel</button>
     </div>
     <div class="status-message">Initializing update...</div>
@@ -645,48 +645,54 @@
     }
 
     // Update messages for different stages of the process
-  const updateMessages = [
-      "Initializing workflow...",
-      "Connecting to GitHub...",
-      "Capturing latest data...",
-      "Processing dashboard information...",
-      "Updating visuals...",
-      "Saving changes...",
-      "Almost done..."
+    // Messages evenly spaced across the 10-minute window
+    // 10 messages spaced roughly 1 per minute across the 10-minute window
+    const updateMessages = [
+      "Initializing workflow",
+      "Starting capture",
+      "Preparing resources",
+      "Capturing dashboards",
+      "Processing images",
+      "Optimizing visuals",
+      "Updating assets",
+      "Committing changes",
+      "Finalizing",
+      "Finishing up"
     ];
 
     const updateProgress = (percent, message, timeLeft, opts = {}) => {
       // Update progress bar
-      // Enforce monotonic progress: never decrease
-      percent = Math.max(percent, updateState.lastProgress || 0);
+      // Progress driven by time (percent) directly for smoothness
       progressBar.style.width = `${percent}%`;
-      updateState.lastProgress = percent;
       
       // Update message with debounce to avoid rapid flicker
+      // Update message based on percent if not provided explicitly
+      if (!message) {
+        const idx = Math.min(updateMessages.length - 1, Math.floor((percent / 100) * updateMessages.length));
+        message = updateMessages[idx];
+      }
+      // Debounce updates slightly to avoid flicker
       const now = Date.now();
-      const force = opts.force === true;
-      if (message && (force || message !== updateState.lastMessage)) {
-        const elapsed = now - (updateState.lastMessageTime || 0);
-        if (force || elapsed > 800) {
-          messageEl.textContent = message;
-          updateState.lastMessage = message;
-          updateState.lastMessageTime = now;
-        }
-        // if elapsed <= 800 and not forced, skip message update to avoid flicker
+      if (message && (now - (updateState.lastMessageTime || 0) > 700 || message !== updateState.lastMessage)) {
+        messageEl.textContent = message;
+        updateState.lastMessage = message;
+        updateState.lastMessageTime = now;
       }
       
-      // Update time
+      // Update time: show whole minutes only until 2 minutes remain, then show MM:SS
       if (typeof timeLeft === 'number') {
-        const minutes = Math.floor(timeLeft / 60000);
-    if (timeLeft <= 60000) { // Last minute
-          const seconds = Math.floor((timeLeft % 60000) / 1000);
-          timeNum.textContent = `${seconds}`;
-          statusBox.querySelector('.time-label').textContent = 'sec remaining';
-        } else {
-          // round down to nearest whole minute, but ensure it doesn't jump up
-          const displayed = Math.max(parseInt(timeNum.textContent) || 0, minutes);
-          timeNum.textContent = `${displayed}`;
-          statusBox.querySelector('.time-label').textContent = 'min remaining';
+        const twoMinutesMs = 2 * 60 * 1000;
+        const label = statusBox.querySelector('.time-display');
+        if (label) {
+          if (timeLeft > twoMinutesMs) {
+            // Show whole number of minutes (round up so it reads more intuitively)
+            const mins = Math.ceil(timeLeft / 60000);
+            label.textContent = `${mins}`;
+          } else {
+            const mm = Math.floor(timeLeft / 60000).toString().padStart(2, '0');
+            const ss = Math.floor((timeLeft % 60000) / 1000).toString().padStart(2, '0');
+            label.textContent = `${mm}:${ss}`;
+          }
         }
       }
     };
@@ -832,32 +838,18 @@
                                fullProjectName === 'VM 13.0' ? 5 : 
                                fullProjectName === 'Blaze 1.0' ? 4 : 0;
           
-          // Calculate progress based on workflow steps
-          const progress = (() => {
-            switch(status) {
-              case 'queued': return 10;
-              case 'in_progress': {
-                // estimate progression by elapsed time relative to totalTime but cap it
-                const elapsed = Date.now() - updateState.startTime;
-                const timeBased = Math.min(80, Math.floor((elapsed / updateState.totalTime) * 80));
-                // also use dashboardCount heuristic
-                const stepsCompleted = Math.min(i + 1, dashboardCount);
-                const stepBased = Math.min(80, Math.floor(20 + (stepsCompleted / dashboardCount * 60)));
-                return Math.max(timeBased, stepBased);
-              }
-              case 'completed': return run.conclusion === 'success' ? 100 : 0;
-              default: return 30;
-            }
-          })();
-          
-          // Update the UI with current progress
-          updateProgress(
-            progress,
-            status === 'in_progress' ? 'Updating dashboards...' : 
-            status === 'queued' ? 'Waiting for workflow to start...' : 
-            status === 'completed' && run.conclusion === 'success' ? 'Update complete!' : 'Processing...',
-            updateState.totalTime - (Date.now() - updateState.startTime)
-          );
+          // Keep UI strictly time-driven for smoothness: progress is percentTime (from interval)
+          // Choose a friendly message based on status but don't let workflow step heuristics jump the bar
+          const uiMessage = status === 'in_progress' ? 'Updating dashboards...' :
+                            status === 'queued' ? 'Waiting for workflow to start...' :
+                            status === 'completed' && run.conclusion === 'success' ? 'Update complete!' : 'Processing...';
+
+          // percentTime is computed by the timer interval; derive it here to keep UI consistent
+          const elapsedLocal = Date.now() - updateState.startTime;
+          const timeLeftLocal = Math.max(0, updateState.totalTime - elapsedLocal);
+          const percentTimeLocal = Math.min(100, (elapsedLocal / updateState.totalTime) * 100);
+
+          updateProgress(percentTimeLocal, uiMessage, timeLeftLocal);
 
           if (status === 'completed' && run.conclusion === 'success') {
             updateState.isCompleted = true;

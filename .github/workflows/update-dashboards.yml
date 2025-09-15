@@ -26,135 +26,57 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-          # Improve checkout performance
-          sparse-checkout: |
-            .github/workflows
-            snapshots.js
-            package.json
-            package-lock.json
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: package-lock.json
 
-      - name: Restore node_modules cache
-        id: node-mod-cache
-        uses: actions/cache@v3
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
+      - name: Install Dependencies
+        run: |
+          if [ -e package-lock.json ]; then
+            npm ci --production
+          else
+            npm install --production
+          fi
 
-      - name: Install Dependencies (cache miss only)
-        if: steps.node-mod-cache.outputs.cache-hit != 'true'
+      - name: Capture Screenshots
         shell: bash
         run: |
-          echo "Cache miss, installing dependencies..."
-          npm ci --omit=dev --prefer-offline --no-audit --no-fund --no-progress --silent
-
-      - name: Skip install (cache hit)
-        if: steps.node-mod-cache.outputs.cache-hit == 'true'
-        run: echo "Cache hit, skipping installation"
-
-      - name: Validate and normalize project name
-        id: validate
-        shell: bash
-        run: |
-          RAW_PROJECT="${PROJECT}"
+          # Get project name from input or client payload
+          RAW_PROJECT="${{ github.event.inputs.project || github.event.client_payload.project }}"
           echo "📋 Raw project input: '$RAW_PROJECT'"
 
           # Clean quotes, CR, and trim whitespace
           PROJECT_CLEAN=$(printf "%s" "$RAW_PROJECT" | tr -d '"' | tr -d "'" | tr -d '\r' | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')
-          echo "project_clean=$PROJECT_CLEAN" >> $GITHUB_OUTPUT
 
-          # Validate canonical project name
-          if [[ "$PROJECT_CLEAN" != "VM 13.0" && "$PROJECT_CLEAN" != "Blaze 1.0" && "$PROJECT_CLEAN" != "VM 14.0" ]]; then
-            echo "❌ Error: Invalid project name: '$PROJECT_CLEAN'"
+          # Only accept exact canonical project names; allow trimming of surrounding quotes/CR and whitespace
+          PROJECT="$PROJECT_CLEAN"
+
+          echo "\ud83d\udd0d Normalized (trimmed) project name: '$PROJECT'"
+
+          # Validate canonical project name (exact, case-sensitive)
+          if [[ "$PROJECT" != "VM 13.0" && "$PROJECT" != "Blaze 1.0" && "$PROJECT" != "VM 14.0" ]]; then
+            echo "\u274c Error: Invalid project name: '$PROJECT'"
             echo "Must be one of: 'VM 13.0', 'Blaze 1.0', 'VM 14.0' (exact, case-sensitive)"
             exit 1
           fi
-          
-          echo "✅ Valid project name: $PROJECT_CLEAN"
 
-      - name: Create output directory
-        run: |
-          MONTH=$(date -u +%Y-%m)
-          mkdir -p "snapshots/$MONTH/${{ steps.validate.outputs.project_clean }}"
-
-      - name: Capture Screenshots
-        shell: bash
-        env:
-          PROJECT: ${{ steps.validate.outputs.project_clean }}
-        run: |
+          echo "\u2705 Valid canonical project name detected"
           echo "Running snapshots for project: $PROJECT"
-          # Using your original snapshots.js which has proper stabilization
           node snapshots.js "$PROJECT"
 
       - name: Commit Changes
         shell: bash
         env:
-          PROJECT: ${{ steps.validate.outputs.project_clean }}
+          PROJECT: ${{ env.PROJECT }}
         run: |
           set -euo pipefail
-          MONTH=$(date -u +%Y-%m)
-
-          # Configure git
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
-          # Create temporary branch
-          BRANCH="screenshots/${GITHUB_SHA}"
-          git checkout -b "$BRANCH"
-
-          # Stage changes
+          MONTH=$(date -u +%Y-%m)
           git add "snapshots/$MONTH/${PROJECT}"
-
-          # Skip if no changes (but don't fail)
-          if git diff --staged --quiet; then
-            echo "No changes detected"
-            exit 0
-          fi
-
-          # Commit changes
-          git commit -m "Update ${PROJECT} screenshots [skip ci]"
-
-          # Try to push with retries and proper error handling
-          MAX_RETRIES=3
-          RETRY_COUNT=0
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            # Ensure we have latest main
-            git fetch origin main
-
-            # Try to rebase onto main
-            if git rebase origin/main; then
-              if git push origin HEAD:main; then
-                echo "✅ Successfully pushed changes"
-                break
-              fi
-            else
-              echo "Rebase failed, trying merge strategy..."
-              git rebase --abort
-              git checkout main
-              git pull --ff-only origin main
-              
-              if git merge --no-ff "$BRANCH" -m "Merge screenshots for ${PROJECT}" && git push origin main; then
-                echo "✅ Successfully merged and pushed changes"
-                break
-              fi
-            fi
-            
-            RETRY_COUNT=$((RETRY_COUNT + 1))
-            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-              echo "Push failed, retrying in 5 seconds (attempt $((RETRY_COUNT + 1))/$MAX_RETRIES)..."
-              sleep 5
-            else
-              echo "❌ Failed to push after $MAX_RETRIES attempts"
-              exit 1
-            fi
-          done
+          git commit -m "Update ${PROJECT} screenshots [skip ci]" --allow-empty
+          git push

@@ -660,27 +660,38 @@
 
   function minimizeRefreshStatus() {
     document.getElementById('refresh-status').classList.remove('active');
-    // Clear the active state but keep the timing information
-    const state = JSON.parse(localStorage.getItem('refresh_state') || '{}');
-    localStorage.setItem('refresh_state', JSON.stringify({
-      ...state,
-      isActive: false
-    }));
+    // Clear the active state but keep the timing information for all projects
+    const allRefreshes = JSON.parse(localStorage.getItem('all_refresh_states') || '{}');
+    Object.keys(allRefreshes).forEach(proj => {
+      allRefreshes[proj].isActive = false;
+    });
+    localStorage.setItem('all_refresh_states', JSON.stringify(allRefreshes));
   }
 
   function resumeRefreshStatus() {
-    const state = JSON.parse(localStorage.getItem('refresh_state') || '{}');
-    if (state.startTime) {
-      const elapsed = Date.now() - state.startTime;
-      if (elapsed < AUTO_REFRESH_DELAY) {
-        const statusPanel = document.getElementById('refresh-status');
-        statusPanel.classList.add('active');
-        localStorage.setItem('refresh_state', JSON.stringify({
-          ...state,
-          isActive: true
-        }));
-        return true;
+    const allRefreshes = JSON.parse(localStorage.getItem('all_refresh_states') || '{}');
+    const activeRefreshes = Object.entries(allRefreshes)
+      .filter(([_, state]) => {
+        const elapsed = Date.now() - state.startTime;
+        return elapsed < AUTO_REFRESH_DELAY;
+      });
+
+    if (activeRefreshes.length > 0) {
+      const statusPanel = document.getElementById('refresh-status');
+      statusPanel.classList.add('active');
+      
+      // Reactivate all valid refreshes
+      activeRefreshes.forEach(([proj, state]) => {
+        allRefreshes[proj].isActive = true;
+      });
+      localStorage.setItem('all_refresh_states', JSON.stringify(allRefreshes));
+
+      // Update status text to show all active refreshes
+      const statusText = statusPanel.querySelector('.status-text');
+      if (activeRefreshes.length > 1) {
+        statusText.textContent = `Refreshing multiple: ${activeRefreshes.map(([proj]) => proj).join(', ')}`;
       }
+      return true;
     }
     return false;
   }
@@ -700,22 +711,47 @@
 
     // Store refresh state in localStorage
     const storeRefreshState = () => {
-      localStorage.setItem('refresh_state', JSON.stringify({
+      const allRefreshes = JSON.parse(localStorage.getItem('all_refresh_states') || '{}');
+      allRefreshes[project] = {
         startTime: Date.now(),
-        project,
         isActive: true
-      }));
+      };
+      localStorage.setItem('all_refresh_states', JSON.stringify(allRefreshes));
     };
     storeRefreshState();
+    
+    // Check for other active refreshes
+    const allRefreshes = JSON.parse(localStorage.getItem('all_refresh_states') || '{}');
+    const activeProjects = Object.entries(allRefreshes)
+      .filter(([proj, state]) => state.isActive && proj !== project)
+      .map(([proj]) => proj);
+    
+    if (activeProjects.length > 0) {
+      statusText.textContent = `Note: Also refreshing ${activeProjects.join(', ')}`;
+      setTimeout(() => {
+        updateCountdown(); // Resume normal countdown after showing the message
+      }, 3000);
 
     // Set up auto-refresh timer and countdown
     const updateCountdown = () => {
-      const state = JSON.parse(localStorage.getItem('refresh_state') || '{}');
-      if (!state.isActive) {
+      const allRefreshes = JSON.parse(localStorage.getItem('all_refresh_states') || '{}');
+      const currentState = allRefreshes[project];
+      
+      if (!currentState || !currentState.isActive) {
         minimizeRefreshStatus();
         return;
       }
-      const elapsed = Date.now() - state.startTime;
+
+      // Find earliest refresh time among all active refreshes
+      const earliestRefresh = Object.entries(allRefreshes)
+        .filter(([_, state]) => state.isActive)
+        .reduce((earliest, [proj, state]) => 
+          state.startTime < earliest.time ? 
+          { time: state.startTime, project: proj } : 
+          earliest
+        , { time: Infinity, project: null });
+
+      const elapsed = Date.now() - earliestRefresh.time;
       const remaining = AUTO_REFRESH_DELAY - elapsed;
       
       if (remaining <= 0) {

@@ -713,8 +713,8 @@
         throw new Error(`Invalid project name: ${fullProjectName}`);
       }
 
-      // Initialize workflow
-      updateProgress(10, 'Initializing workflow...', updateState.totalTime);
+  // Initialize workflow (start at 0% to match full 10-minute timer)
+  updateProgress(0, 'Initializing workflow...', updateState.totalTime);
       
       // Use workflow file dispatch to target update-dashboards.yml directly
       updateState.dispatchTime = Date.now();
@@ -744,7 +744,7 @@
         throw new Error(`GitHub API Error: ${response.status} - ${errorText || response.statusText}`)
       }
 
-      updateProgress(20, 'Installing dependencies...', 'Setting up environment');
+  updateProgress(5, 'Installing dependencies...', updateState.totalTime);
 
       let lastWorkflowStatus = '';
       // Store workflow ID in localStorage to track refresh

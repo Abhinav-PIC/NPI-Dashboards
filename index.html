@@ -47,188 +47,170 @@
     @keyframes loadingIn{from{opacity:0;transform:translate(-50%,-55%)}to{opacity:1;transform:translate(-50%,-50%)}}
     @media (max-width:420px){.loading{font-size:clamp(18px,5.5vw,28px)}}
 
-    /* Floating Status Panel */
+    .sparkles{position:relative;width:1.25em;height:1.25em;display:inline-block;margin:0 .08em}
+    .sparkles svg{position:absolute;inset:0;width:100%;height:100%;fill:#fff}
+    .sparkles .back{opacity:.45;transform:translate(.18em,-.14em) scale(.78)}
+    .sparkles .front{opacity:1}
+    .splash.fade-out{animation:fadeSplash .8s ease-in forwards}
+
+    @keyframes logoIn{to{opacity:1;transform:translateY(0)}}
+    @keyframes logoOut{to{opacity:0;transform:translateY(-20px)}}
+    @keyframes tagSlide{to{opacity:1;transform:translateX(0)}}
+    @keyframes tagFade{to{opacity:0;transform:translateX(-20px)}}
+    @keyframes fadeSplash{to{opacity:0;visibility:hidden}}
+
+    .sparkles{position:relative;width:1.25em;height:1.25em;display:inline-block;margin:0 .08em}
+    .sparkles svg{position:absolute;inset:0;width:100%;height:100%;fill:#fff}
+    .sparkles .back{opacity:.45;transform:translate(.18em,-.14em) scale(.78)}
+    .sparkles .front{opacity:1}
+    .splash.fade-out{animation:fadeSplash .8s ease-in forwards}
+
+    @keyframes logoIn{to{opacity:1;transform:translateY(0)}}
+    @keyframes logoOut{to{opacity:0;transform:translateY(-20px)}}
+    @keyframes tagSlide{to{opacity:1;transform:translateX(0)}}
+    @keyframes tagFade{to{opacity:0;transform:translateX(-20px)}}
+    @keyframes fadeSplash{to{opacity:0;visibility:hidden}}
+
+    /* Refresh Status Box */
     .refresh-status {
       position: fixed;
-      bottom: 20px;
+      top: 80px;
       right: 20px;
-      background: rgba(0,0,0,0.9);
+      width: 320px;
+      background: white;
       border-radius: 12px;
-      padding: 16px;
-      color: white;
-      width: 300px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      color: var(--bar);
       z-index: 9999;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-      transform: translateY(200%);
-      transition: transform 0.3s ease;
-    }
-
-    .refresh-status.active {
-      transform: translateY(0);
-    }
-
-    .refresh-status .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-
-    .refresh-status .title {
-      font-weight: 600;
+      padding: 20px;
+      display: none;
       font-size: 14px;
     }
 
-    .refresh-status .close {
-      background: none;
-      border: none;
-      color: rgba(255,255,255,0.6);
-      cursor: pointer;
-      padding: 4px;
+    .refresh-status.active {
+      display: block;
+      animation: slideIn 0.3s ease-out;
     }
 
-    .refresh-status .progress-bar {
-      height: 4px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 2px;
-      margin: 8px 0;
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
     }
 
-    .refresh-status .progress-fill {
-      height: 100%;
-      background: var(--philips);
-      border-radius: 2px;
-      transition: width 0.3s ease;
+    .status-header {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 15px;
+      color: var(--bar);
     }
 
-    .refresh-status .status-text {
-      font-size: 13px;
-      color: rgba(255,255,255,0.8);
+    .status-message {
+      margin-bottom: 10px;
+      color: var(--bar);
+      font-weight: 500;
     }
 
-    /* Navigation Refresh Indicator */
-    .nav-item .refresh-indicator {
-      position: absolute;
-      top: -6px;
-      right: -6px;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: var(--warning);
-      border: 2px solid var(--bar);
-      opacity: 0;
-      transition: opacity 0.3s ease;
+    .time-remaining {
+      color: var(--philips);
+      font-weight: 600;
+      margin-bottom: 15px;
     }
 
-    .nav-item.refreshing .refresh-indicator {
-      opacity: 1;
+    .update-steps {
+      margin-bottom: 15px;
     }
 
-    .nav-item.refreshing .btn {
+    .step {
+      padding: 8px 0;
+      color: #666;
       position: relative;
+      padding-left: 24px;
     }
 
-    .nav-item.refreshing .btn::after {
-      content: '';
+    .step::before {
+      content: "";
       position: absolute;
-      inset: -4px;
-      border: 2px solid var(--warning);
-      border-radius: 14px;
-      opacity: 0.6;
-      animation: pulse 1.5s infinite;
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); opacity: 0.6; }
-      50% { transform: scale(1.1); opacity: 0.3; }
-      100% { transform: scale(1); opacity: 0.6; }
-    }
-
-    .sparkles{position:relative;width:1.25em;height:1.25em;display:inline-block;margin:0 .08em}
-    .sparkles svg{position:absolute;inset:0;width:100%;height:100%;fill:#fff}
-    .sparkles .back{opacity:.45;transform:translate(.18em,-.14em) scale(.78)}
-    .sparkles .front{opacity:1}
-    .splash.fade-out{animation:fadeSplash .8s ease-in forwards}
-
-    @keyframes logoIn{to{opacity:1;transform:translateY(0)}}
-    @keyframes logoOut{to{opacity:0;transform:translateY(-20px)}}
-    @keyframes tagSlide{to{opacity:1;transform:translateX(0)}}
-    @keyframes tagFade{to{opacity:0;transform:translateX(-20px)}}
-    @keyframes fadeSplash{to{opacity:0;visibility:hidden}}
-
-    .sparkles{position:relative;width:1.25em;height:1.25em;display:inline-block;margin:0 .08em}
-    .sparkles svg{position:absolute;inset:0;width:100%;height:100%;fill:#fff}
-    .sparkles .back{opacity:.45;transform:translate(.18em,-.14em) scale(.78)}
-    .sparkles .front{opacity:1}
-    .splash.fade-out{animation:fadeSplash .8s ease-in forwards}
-
-    @keyframes logoIn{to{opacity:1;transform:translateY(0)}}
-    @keyframes logoOut{to{opacity:0;transform:translateY(-20px)}}
-    @keyframes tagSlide{to{opacity:1;transform:translateX(0)}}
-    @keyframes tagFade{to{opacity:0;transform:translateX(-20px)}}
-    @keyframes fadeSplash{to{opacity:0;visibility:hidden}}
-
-    /* Refresh Overlay */
-    .refresh-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.85);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      z-index: 9999;
-      padding: 20px;
-    }
-
-    .refresh-overlay.active {
-      display: flex;
-    }
-
-    .refresh-overlay .spinner {
-      width: 50px;
-      height: 50px;
-      border: 5px solid #f3f3f3;
-      border-top: 5px solid var(--philips);
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-bottom: 20px;
+      border: 2px solid #ddd;
     }
 
-    .refresh-overlay .message {
-      font-size: 1.2em;
-      text-align: center;
-      max-width: 80%;
-      line-height: 1.5;
-      margin-bottom: 20px;
+    .step.active {
+      color: var(--bar);
+      font-weight: 500;
     }
 
-    .refresh-overlay .progress-container {
-      width: 300px;
-      height: 6px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 3px;
+    .step.active::before {
+      border-color: var(--philips);
+      background: var(--philips);
+    }
+
+    .step.completed::before {
+      border-color: #4CAF50;
+      background: #4CAF50;
+    }
+
+    .step.completed::after {
+      content: "✓";
+      position: absolute;
+      left: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: white;
+      font-size: 11px;
+    }
+
+    /* Toast notification */
+    .toast-notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--bar);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      display: none;
+      z-index: 10000;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .toast-notification.show {
+      display: block;
+    }
+
+    .progress-container {
+      width: 100%;
+      height: 4px;
+      background: #eee;
+      border-radius: 2px;
       overflow: hidden;
-      margin: 20px 0;
+      margin: 15px 0;
     }
 
-    .refresh-overlay .progress-bar {
+    .progress-bar {
       width: 0%;
       height: 100%;
       background: var(--philips);
       transition: width 0.5s ease;
     }
 
-    .refresh-overlay .status {
-      font-size: 0.9em;
-      color: rgba(255,255,255,0.8);
-      margin-top: 10px;
+    .status-footer {
+      text-align: center;
+      color: #666;
+      font-size: 13px;
     }
 
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+    /* Disable refresh buttons during update */
+    .refresh-button.disabled {
+      opacity: 0.5;
+      pointer-events: none;
+      cursor: not-allowed;
     }
 
     /* Top bar and Navigation */
@@ -357,42 +339,29 @@
       z-index:1;
     }
     .controls{position:absolute;left:0;right:0;bottom:18px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;z-index:30}
-    .controls .btn{
-      padding:10px 16px;
-      font-size:14px;
-      background:var(--btn);
-      border: none;
-      color: #fff;
-      cursor: pointer;
-      border-radius: 12px;
-      transition: background-color 0.2s ease;
-      opacity: 1;
-      pointer-events: auto;
-    }
-    .controls .btn:hover{
-      background:var(--btnH);
-      opacity: 1;
-    }
-    .controls .btn[disabled]{
-      background:var(--btnDis);
-      cursor:not-allowed;
-      opacity:.65;
-      pointer-events: none;
-    }
+    .controls .btn{padding:10px 16px;font-size:14px;background:var(--btn)}
+    .controls .btn:hover{background:var(--btnH)}
+    .controls .btn[disabled]{background:var(--btnDis);cursor:not-allowed;opacity:.65}
     .counter{color:#fff;background:rgba(0,0,0,.35);padding:6px 10px;border-radius:8px;font-weight:700}
   </style>
 </head>
 <body>
-  <!-- Refresh Status Panel -->
-  <div class="refresh-status" id="refresh-status">
-    <div class="header">
-      <div class="title">Updating Dashboards</div>
-      <button class="close" onclick="minimizeRefreshStatus()">✕</button>
+  <!-- Refresh Status Box -->
+  <div id="refresh-status" class="refresh-status">
+    <div class="status-header">Dashboard Update Status</div>
+    <div class="status-message">Initializing update...</div>
+    <div class="time-remaining">Estimated time: <span>10</span> minutes remaining</div>
+    <div class="update-steps">
+      <div class="step" data-step="init">Initializing workflow</div>
+      <div class="step" data-step="capture">Capturing latest data</div>
+      <div class="step" data-step="process">Processing dashboards</div>
+      <div class="step" data-step="save">Saving changes</div>
+      <div class="step" data-step="commit">Committing updates</div>
     </div>
-    <div class="progress-bar">
-      <div class="progress-fill" style="width: 0%"></div>
+    <div class="progress-container">
+      <div class="progress-bar"></div>
     </div>
-    <div class="status-text">Initializing...</div>
+    <div class="status-footer">Update in progress...</div>
   </div>
 
   <!-- SPLASH -->
@@ -654,124 +623,29 @@
     updateNavSelection(project);
   }
 
-  // Refresh timer constants
-  const AUTO_REFRESH_DELAY = 600000; // 10 minutes in milliseconds
-  let refreshTimer = null;
-
-  function minimizeRefreshStatus() {
-    document.getElementById('refresh-status').classList.remove('active');
-    // Clear the active state but keep the timing information for all projects
-    const allRefreshes = JSON.parse(localStorage.getItem('all_refresh_states') || '{}');
-    Object.keys(allRefreshes).forEach(proj => {
-      allRefreshes[proj].isActive = false;
-    });
-    localStorage.setItem('all_refresh_states', JSON.stringify(allRefreshes));
-  }
-
-  function resumeRefreshStatus() {
-    const allRefreshes = JSON.parse(localStorage.getItem('all_refresh_states') || '{}');
-    const activeRefreshes = Object.entries(allRefreshes)
-      .filter(([_, state]) => {
-        const elapsed = Date.now() - state.startTime;
-        return elapsed < AUTO_REFRESH_DELAY;
-      });
-
-    if (activeRefreshes.length > 0) {
-      const statusPanel = document.getElementById('refresh-status');
-      statusPanel.classList.add('active');
-      
-      // Reactivate all valid refreshes
-      activeRefreshes.forEach(([proj, state]) => {
-        allRefreshes[proj].isActive = true;
-      });
-      localStorage.setItem('all_refresh_states', JSON.stringify(allRefreshes));
-
-      // Update status text to show all active refreshes
-      const statusText = statusPanel.querySelector('.status-text');
-      if (activeRefreshes.length > 1) {
-        statusText.textContent = `Refreshing multiple: ${activeRefreshes.map(([proj]) => proj).join(', ')}`;
-      }
-      return true;
-    }
-    return false;
-  }
-
   async function refreshDashboards(project) {
-    const statusPanel = document.getElementById('refresh-status');
-    const progressFill = statusPanel.querySelector('.progress-fill');
-    const statusText = statusPanel.querySelector('.status-text');
+    const statusBox = document.getElementById('refresh-status');
+    const messageEl = statusBox.querySelector('.status-message');
+    const progressBar = statusBox.querySelector('.progress-bar');
+    const timeRemaining = statusBox.querySelector('.time-remaining span');
+    const statusFooter = statusBox.querySelector('.status-footer');
+    const steps = statusBox.querySelectorAll('.step');
     
-    // Show floating status instead of overlay
-    statusPanel.classList.add('active');
-    
-    // Clear any existing refresh timer
-    if (refreshTimer) {
-      clearTimeout(refreshTimer);
-    }
+    // Disable all refresh buttons
+    document.querySelectorAll('.refresh-button').forEach(btn => {
+      btn.classList.add('disabled');
+    });
 
-    // Store refresh state in localStorage
-    const storeRefreshState = () => {
-      const allRefreshes = JSON.parse(localStorage.getItem('all_refresh_states') || '{}');
-      allRefreshes[project] = {
-        startTime: Date.now(),
-        isActive: true
-      };
-      localStorage.setItem('all_refresh_states', JSON.stringify(allRefreshes));
+    statusBox.classList.add('active');
+
+    // Initialize update state
+    const updateState = {
+      startTime: Date.now(),
+      totalTime: 10 * 60 * 1000, // 10 minutes in milliseconds
+      currentStep: 0,
+      isCompleted: false,
+      timer: null
     };
-    storeRefreshState();
-    
-    // Check for other active refreshes
-    const allRefreshes = JSON.parse(localStorage.getItem('all_refresh_states') || '{}');
-    const activeProjects = Object.entries(allRefreshes)
-      .filter(([proj, state]) => state.isActive && proj !== project)
-      .map(([proj]) => proj);
-    
-    if (activeProjects.length > 0) {
-      statusText.textContent = `Note: Also refreshing ${activeProjects.join(', ')}`;
-      setTimeout(() => {
-        updateCountdown(); // Resume normal countdown after showing the message
-      }, 3000);
-
-    // Set up auto-refresh timer and countdown
-    const updateCountdown = () => {
-      const allRefreshes = JSON.parse(localStorage.getItem('all_refresh_states') || '{}');
-      const currentState = allRefreshes[project];
-      
-      if (!currentState || !currentState.isActive) {
-        minimizeRefreshStatus();
-        return;
-      }
-
-      // Find earliest refresh time among all active refreshes
-      const earliestRefresh = Object.entries(allRefreshes)
-        .filter(([_, state]) => state.isActive)
-        .reduce((earliest, [proj, state]) => 
-          state.startTime < earliest.time ? 
-          { time: state.startTime, project: proj } : 
-          earliest
-        , { time: Infinity, project: null });
-
-      const elapsed = Date.now() - earliestRefresh.time;
-      const remaining = AUTO_REFRESH_DELAY - elapsed;
-      
-      if (remaining <= 0) {
-        statusText.textContent = 'Refreshing page...';
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
-        return;
-      }
-
-      const minutes = Math.floor(remaining / 60000);
-      const seconds = Math.floor((remaining % 60000) / 1000);
-      statusText.textContent = `Auto-refresh in ${minutes}:${seconds.toString().padStart(2, '0')}`;
-      refreshTimer = setTimeout(updateCountdown, 1000);
-    };
-    
-    updateCountdown();
-
-    // Store refresh start time in localStorage
-    localStorage.setItem('refresh_start_time', Date.now().toString());
 
     // Check for existing workflow
     const workflowKey = 'current_workflow_update';
@@ -779,27 +653,62 @@
     
     if (existingWorkflow) {
       const workflowData = JSON.parse(existingWorkflow);
-      const isRecent = Date.now() - workflowData.timestamp < 180000; // 3 minutes
+      const isRecent = Date.now() - workflowData.timestamp < 600000; // 10 minutes
       
       if (isRecent) {
-        // Resume existing workflow
-        statusText.textContent = `Continuing update for ${workflowData.project}`;
-        progressFill.style.width = '30%';
+        updateState.startTime = workflowData.timestamp;
+        updateState.currentStep = workflowData.step || 0;
+        messageEl.textContent = 'Resuming update...';
+        statusFooter.textContent = `Continuing update for ${workflowData.project}`;
       } else {
         localStorage.removeItem(workflowKey);
       }
     }
 
-    const updateProgress = (percent, status) => {
-      progressFill.style.width = `${percent}%`;
-      if (status) statusText.textContent = status;
-      storeRefreshState({
-        percent,
-        status,
-        project,
-        timestamp: Date.now()
+    const updateProgress = (percent, step, message, timeLeft) => {
+      // Update progress bar
+      progressBar.style.width = `${percent}%`;
+      
+      // Update step indicators
+      steps.forEach((s, i) => {
+        if (i < step) {
+          s.classList.add('completed');
+          s.classList.remove('active');
+        } else if (i === step) {
+          s.classList.add('active');
+          s.classList.remove('completed');
+        } else {
+          s.classList.remove('active', 'completed');
+        }
       });
+
+      // Update message and time
+      if (message) messageEl.textContent = message;
+      if (typeof timeLeft === 'number') {
+        timeRemaining.textContent = Math.max(0, Math.ceil(timeLeft / 60000));
+      }
     };
+
+    // Start time update interval
+    updateState.timer = setInterval(() => {
+      const elapsed = Date.now() - updateState.startTime;
+      const timeLeft = updateState.totalTime - elapsed;
+      
+      if (timeLeft <= 0 && !updateState.isCompleted) {
+        clearInterval(updateState.timer);
+        window.location.reload();
+        return;
+      }
+
+      // Show minutes and seconds when less than 2 minutes remain
+      if (timeLeft <= 120000) {
+        const minutes = Math.floor(timeLeft / 60000);
+        const seconds = Math.floor((timeLeft % 60000) / 1000);
+        timeRemaining.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      } else {
+        timeRemaining.textContent = Math.max(0, Math.ceil(timeLeft / 60000));
+      }
+    }, 1000);
 
     try {
       // Check if token exists
@@ -924,119 +833,129 @@
           );
 
           if (status === 'completed' && run.conclusion === 'success') {
+            updateState.isCompleted = true;
             localStorage.removeItem(workflowKey);
-            setTimeout(() => window.location.reload(), 1000);
+            updateProgress(100, 4, 'Update completed successfully!');
+            statusFooter.textContent = 'Refreshing page...';
+            clearInterval(updateState.timer);
+            
+            // Re-enable refresh buttons before reload
+            document.querySelectorAll('.refresh-button').forEach(btn => {
+              btn.classList.remove('disabled');
+            });
+            
+            setTimeout(() => window.location.reload(), 2000);
             return;
           }
 
         } catch (error) {
           console.error('Error checking workflow status:', error);
-          throw new Error('Failed to check workflow status');
+          handleUpdateError('Failed to check workflow status');
         }
       }
       // If we get here, we've timed out
-      updateProgress(100, '⚠️ Update Timed Out', 'Please try again');
-      progressBar.style.background = '#f0ad4e';
-      localStorage.removeItem(workflowKey);
-      throw new Error('Update timed out');
+      handleUpdateError('Update timed out');
 
     } catch (error) {
       console.error('Error:', error);
-      const errorType = error.message.includes('cancelled') ? 'cancelled' :
-                       error.message.includes('failed') ? 'failed' :
-                       'error';
-      
-      // Clear the workflow storage
-      localStorage.removeItem(workflowKey);
-      
-      // Update UI based on error type
-      messageEl.textContent = errorType === 'cancelled' 
-        ? '⚠️ Update Cancelled' 
-        : '⚠️ Update Failed';
-      statusEl.style.textAlign = 'center';
-      statusEl.innerHTML = 'Please contact support<br><span style="display: block">(Click anywhere to cancel)</span>';
-      progressBar.style.width = '100%';
-      progressBar.style.background = errorType === 'cancelled' 
-        ? '#f0ad4e' 
-        : '#ff6b6b';
-      
-      // Make overlay clickable to dismiss
-      overlay.onclick = () => {
-        overlay.classList.remove('active');
-        progressBar.style.background = 'var(--philips)'; // Reset progress bar color
-      };
+      handleUpdateError(error.message);
     }
   }
 
-  // Initialize check on page load
-  window.addEventListener('load', () => {
-    const state = JSON.parse(localStorage.getItem('refresh_state') || '{}');
-    if (state.startTime) {
-      const elapsed = Date.now() - state.startTime;
-      if (elapsed >= AUTO_REFRESH_DELAY) {
-        // If we missed the refresh while away, do it now
-        window.location.reload();
-      } else if (state.isActive) {
-        // Resume the countdown
-        resumeRefreshStatus();
-      }
-    }
-  });
+  function handleUpdateError(errorMessage) {
+    const statusBox = document.getElementById('refresh-status');
+    const messageEl = statusBox.querySelector('.status-message');
+    const statusFooter = statusBox.querySelector('.status-footer');
+    const progressBar = statusBox.querySelector('.progress-bar');
+    const timeRemaining = statusBox.querySelector('.time-remaining');
 
-  // Add page visibility handling
+    // Clear any existing intervals
+    clearInterval(updateState?.timer);
+
+    // Clear the workflow storage
+    localStorage.removeItem('current_workflow_update');
+    
+    // Update UI to show error
+    messageEl.textContent = '⚠️ Update Failed';
+    statusFooter.textContent = errorMessage;
+    progressBar.style.width = '100%';
+    progressBar.style.background = '#ff6b6b';
+    timeRemaining.style.display = 'none';
+
+    // Re-enable refresh buttons
+    document.querySelectorAll('.refresh-button').forEach(btn => {
+      btn.classList.remove('disabled');
+    });
+
+    // Make status box dismissible
+    statusBox.onclick = () => {
+      statusBox.classList.remove('active');
+      progressBar.style.background = 'var(--philips)';
+      timeRemaining.style.display = 'block';
+    };
+
+    // Auto-hide after 10 seconds
+    setTimeout(() => {
+      statusBox.classList.remove('active');
+      progressBar.style.background = 'var(--philips)';
+      timeRemaining.style.display = 'block';
+    }, 10000);
+  }
+
+  // Add page visibility and storage change handling
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      const state = JSON.parse(localStorage.getItem('refresh_state') || '{}');
-      if (state.startTime) {
-        const elapsed = Date.now() - state.startTime;
-        
-        // If more than 10 minutes have passed since refresh started
-        if (elapsedTime >= AUTO_REFRESH_DELAY) {
-          window.location.reload();
-        } else if (elapsedTime < AUTO_REFRESH_DELAY) {
-          // If less than 10 minutes, resume countdown
-          if (refreshTimer) {
-            clearTimeout(refreshTimer);
-          }
-          
-          // Update countdown display
-          const statusPanel = document.getElementById('refresh-status');
-          const statusText = statusPanel.querySelector('.status-text');
-          
-          const updateCountdown = () => {
-            const remaining = AUTO_REFRESH_DELAY - (Date.now() - parseInt(refreshStartTime));
-            
-            if (remaining <= 0) {
-              statusText.textContent = 'Refreshing page...';
-              setTimeout(() => {
-                window.location.reload();
-              }, 1500);
-              return;
-            }
-
-            const minutes = Math.floor(remaining / 60000);
-            const seconds = Math.floor((remaining % 60000) / 1000);
-            statusText.textContent = `Auto-refresh in ${minutes}:${seconds.toString().padStart(2, '0')}`;
-            refreshTimer = setTimeout(updateCountdown, 1000);
-          };
-          
-          updateCountdown();
-        }
-      }
-
-      // Resume workflow check if needed
       const workflowData = localStorage.getItem('current_workflow_update');
       if (workflowData) {
-        const { project } = JSON.parse(workflowData);
-        refreshDashboards(project);
+        try {
+          const { project, timestamp } = JSON.parse(workflowData);
+          // Only resume if the update is less than 10 minutes old
+          if (Date.now() - timestamp < 600000) {
+            refreshDashboards(project);
+          } else {
+            localStorage.removeItem('current_workflow_update');
+          }
+        } catch (e) {
+          localStorage.removeItem('current_workflow_update');
+        }
       }
     }
   });
 
-  // Add cleanup on page unload
-  window.addEventListener('unload', () => {
-    if (refreshTimer) {
-      clearTimeout(refreshTimer);
+  function showToast(message, duration = 5000) {
+    let toast = document.querySelector('.toast-notification');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.className = 'toast-notification';
+      document.body.appendChild(toast);
+    }
+    
+    toast.textContent = message;
+    toast.classList.add('show');
+    
+    setTimeout(() => {
+      toast.classList.remove('show');
+    }, duration);
+  }
+
+  // Listen for storage changes in other tabs
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'current_workflow_update') {
+      if (!e.newValue) {
+        // Update was completed or cancelled in another tab
+        window.location.reload();
+      }
+    }
+  });
+
+  // Show notification when returning to tab if update completed
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      const workflowData = localStorage.getItem('current_workflow_update');
+      if (!workflowData && document.querySelector('.refresh-status.active')) {
+        showToast('Dashboard update completed! Refreshing page...');
+        setTimeout(() => window.location.reload(), 2000);
+      }
     }
   });
 </script>

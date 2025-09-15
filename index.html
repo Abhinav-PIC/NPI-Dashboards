@@ -646,18 +646,28 @@
 
     // Update messages for different stages of the process
     // Messages evenly spaced across the 10-minute window
-    // 10 messages spaced roughly 1 per minute across the 10-minute window
+    // 20 messages, each will show for ~30s across the 10-minute window
     const updateMessages = [
-      "Initializing workflow",
-      "Starting capture",
-      "Preparing resources",
-      "Capturing dashboards",
-      "Processing images",
-      "Optimizing visuals",
-      "Updating assets",
-      "Committing changes",
-      "Finalizing",
-      "Finishing up"
+      'Initializing workflow',
+      'Preparing environment',
+      'Authenticating with services',
+      'Starting capture engine',
+      'Loading dashboard templates',
+      'Opening dashboard pages',
+      'Warming up renderers',
+      'Capturing dashboard 1',
+      'Capturing dashboard 2',
+      'Capturing dashboard 3',
+      'Capturing dashboard 4',
+      'Processing captured images',
+      'Optimizing screenshots',
+      'Combining assets',
+      'Updating dashboard visuals',
+      'Preparing commit',
+      'Committing changes',
+      'Pushing updates',
+      'Finalizing update',
+      'Cleaning up and finishing'
     ];
 
     const updateProgress = (percent, message, timeLeft, opts = {}) => {
@@ -668,7 +678,9 @@
       // Update message with debounce to avoid rapid flicker
       // Update message based on percent if not provided explicitly
       if (!message) {
-        const idx = Math.min(updateMessages.length - 1, Math.floor((percent / 100) * updateMessages.length));
+        // If message is not provided, pick one based on elapsed time so each stays ~30s
+        const elapsedForMsg = (updateState && updateState.startTime) ? (Date.now() - updateState.startTime) : 0;
+        const idx = Math.min(updateMessages.length - 1, Math.floor(elapsedForMsg / 30000));
         message = updateMessages[idx];
       }
       // Debounce updates slightly to avoid flicker
@@ -679,15 +691,15 @@
         updateState.lastMessageTime = now;
       }
       
-      // Update time: show whole minutes only until 2 minutes remain, then show MM:SS
+  // Update time: show whole minutes only until 2 minutes remain, then show MM:SS
       if (typeof timeLeft === 'number') {
         const twoMinutesMs = 2 * 60 * 1000;
         const label = statusBox.querySelector('.time-display');
         if (label) {
           if (timeLeft > twoMinutesMs) {
-            // Show whole number of minutes (round up so it reads more intuitively)
-            const mins = Math.ceil(timeLeft / 60000);
-            label.textContent = `${mins}`;
+            // Show whole number of minutes but display one less so it reads like "9 mins remaining" at start
+            const mins = Math.max(1, Math.ceil(timeLeft / 60000) - 1);
+            label.textContent = `${mins} mins remaining`;
           } else {
             const mm = Math.floor(timeLeft / 60000).toString().padStart(2, '0');
             const ss = Math.floor((timeLeft % 60000) / 1000).toString().padStart(2, '0');
@@ -722,9 +734,11 @@
         return;
       }
 
-      // Update message based on progress (use time-based percent for stability)
-      const messageIndex = Math.floor((updateMessages.length - 1) * (percentTime / 100));
-      updateProgress(percentTime, updateMessages[messageIndex], timeLeft);
+  // Update message based on elapsed time so each message shows for ~30s
+  const elapsedForMsg = elapsed; // ms
+  const idx = Math.floor(elapsedForMsg / 30000); // 30s per message
+  const messageIndex = Math.min(updateMessages.length - 1, idx);
+  updateProgress(percentTime, updateMessages[messageIndex], timeLeft);
     }, 1000);
 
     try {
@@ -782,7 +796,12 @@
   // Poll for completion
   for (let i = 0; i < 120; i++) { // poll up to 10 minutes (120 * 5s)
         await new Promise(r => setTimeout(r, 5000));
-        
+        // compute local elapsed/timeLeft/percent so UI is consistent and timer-driven
+        const elapsedLocalPre = Date.now() - updateState.startTime;
+        const timeLeftPre = Math.max(0, updateState.totalTime - elapsedLocalPre);
+        const percentTimePre = Math.min(100, (elapsedLocalPre / updateState.totalTime) * 100);
+        // let the timer-driven UI handle messages; only update progress value here
+        updateProgress(percentTimePre, null, timeLeftPre);
         try {
           // List recent workflow runs (workflow_dispatch events)
           const response = await fetch(
@@ -802,7 +821,7 @@
           const { workflow_runs } = await response.json();
 
           if (!workflow_runs || !workflow_runs.length) {
-            updateProgress(30, 'Capturing latest data...', updateState.totalTime - (Date.now() - updateState.startTime));
+            // no runs yet; let the timer handle message rotation and progress
             continue;
           }
 
@@ -844,12 +863,12 @@
                             status === 'queued' ? 'Waiting for workflow to start...' :
                             status === 'completed' && run.conclusion === 'success' ? 'Update complete!' : 'Processing...';
 
-          // percentTime is computed by the timer interval; derive it here to keep UI consistent
+          // Use timer-driven percent so UI remains smooth; do not override messages here
           const elapsedLocal = Date.now() - updateState.startTime;
           const timeLeftLocal = Math.max(0, updateState.totalTime - elapsedLocal);
           const percentTimeLocal = Math.min(100, (elapsedLocal / updateState.totalTime) * 100);
 
-          updateProgress(percentTimeLocal, uiMessage, timeLeftLocal);
+          updateProgress(percentTimeLocal, null, timeLeftLocal);
 
           if (status === 'completed' && run.conclusion === 'success') {
             updateState.isCompleted = true;

@@ -14,42 +14,16 @@
       --philips:#0e5fd8;
       --bar:#0b2b4f;
       --btn:#003366;
-      --      // Local storage keys for run state
-    const workflowKey = 'current_workflow_update';
-    const progressKey = 'current_progress_state';
-    const existingWorkflow = localStorage.getItem(workflowKey);
-    const existingProgress = localStorage.getItem(progressKey);
-
-    // Track our highest seen progress to prevent going backwards
-    let highestProgress = 0;
-    if (existingProgress) {
-      try {
-        const progressData = JSON.parse(existingProgress);
-        highestProgress = progressData.percent || 0;
-      } catch (e) {}
-    }
-
-    if (existingWorkflow) {
-      try {
-        const workflowData = JSON.parse(existingWorkflow);
-        const isRecent = Date.now() - workflowData.timestamp < 15 * 60 * 1000; // 15 minutes
-        if (isRecent) {
-          const lastProgress = workflowData.lastProgress || {};
-          messageEl.textContent = lastProgress.message || 'Resuming update...';
-          statusEl.textContent = lastProgress.status || `Continuing update for ${workflowData.project}`;
-          progressBar.style.width = `${Math.max(highestProgress, lastProgress.percent || 30)}%`;
-        } else {
-          localStorage.removeItem(workflowKey);
-          localStorage.removeItem(progressKey);
-        }
-      } catch (e) { 
-        localStorage.removeItem(workflowKey);
-        localStorage.removeItem(progressKey);
-      }     --btnDis:#7a94b8;
+      --btnDis:#7a94b8;
       --warning:#ffcc00;
     }
 
     html,body{margin:0;height:100%;overflow:hidden;background:#fff;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;}
+
+    @keyframes spin {
+      0% { transform: translateY(-50%) rotate(0deg); }
+      100% { transform: translateY(-50%) rotate(360deg); }
+    }
 
     /* Veil */
     .veil{position:fixed;inset:0;background:#fff;opacity:1;transition:opacity .6s ease;pointer-events:none;z-index:9998;}
@@ -105,14 +79,41 @@
     .refresh-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.85);
+      background: rgba(0,0,0,0.25);
       display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       color: white;
-      z-index: 9999;
+      z-index: 9998;
       padding: 20px;
+      pointer-events: none;
+    }
+    
+    /* Status Box */
+    .status-box {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--bar);
+      padding: 15px 20px;
+      border-radius: 8px;
+      color: white;
+      z-index: 9999;
+      pointer-events: all;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
+    }
+    
+    .status-box.active {
+      opacity: 1;
+      transform: translateY(0);
     }
 
     .refresh-overlay.active {
@@ -567,27 +568,69 @@
   }
 
   async function refreshDashboards(project) {
+    // Setup UI elements
     const overlay = document.getElementById('refresh-overlay');
     const messageEl = overlay.querySelector('.message');
     const progressBar = overlay.querySelector('.progress-bar');
     const statusEl = overlay.querySelector('.status');
+    
+    // Create status box if it doesn't exist
+    let statusBox = document.querySelector('.status-box');
+    if (!statusBox) {
+      statusBox = document.createElement('div');
+      statusBox.className = 'status-box';
+      document.body.appendChild(statusBox);
+    }
+    
+    // Show overlay and status box with subtle animation
     overlay.classList.add('active');
-    overlay.onclick = null;
+    setTimeout(() => {
+      statusBox.classList.add('active');
+      statusBox.style.transform = 'translateY(0)';
+    }, 100);
+    
+    // Update all navigation buttons to show refresh state
+    const projectRoute = project.toLowerCase().replace(/\s+/g, '').replace(/\./g, '');
+    document.querySelectorAll('.nav-item a[data-route]').forEach(btn => {
+      if (btn.dataset.route === projectRoute) {
+        btn.classList.add('refreshing');
+        btn.style.position = 'relative';
+        const spinner = document.createElement('div');
+        spinner.className = 'btn-spinner';
+        spinner.style.cssText = 'width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); animation: spin 1s linear infinite;';
+        btn.appendChild(spinner);
+      }
+    });
 
-    // Local storage key for current run
+    // Local storage keys
     const workflowKey = 'current_workflow_update';
     const existingWorkflow = localStorage.getItem(workflowKey);
+    const startTime = Date.now();
 
+    // Check for existing workflow
     if (existingWorkflow) {
       try {
         const workflowData = JSON.parse(existingWorkflow);
-        const isRecent = Date.now() - workflowData.timestamp < 15 * 60 * 1000; // 15 minutes
+        const elapsed = Date.now() - workflowData.timestamp;
+        const isRecent = elapsed < 15 * 60 * 1000; // 15 minutes
+        
         if (isRecent) {
+          const minutes = Math.floor(elapsed / 60000);
           messageEl.textContent = 'Resuming update...';
-          statusEl.textContent = `Continuing update for ${workflowData.project}`;
+          statusEl.textContent = `Continuing update for ${workflowData.project} (started ${minutes}m ago)`;
           progressBar.style.width = '30%';
+          
+          // Update status box
+          statusBox.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <div>Resuming Dashboard Update</div>
+              <div style="font-size: 0.9em; opacity: 0.8">Reconnecting to workflow</div>
+            </div>
+            <div style="margin-left: auto; font-weight: 600">30%</div>
+          `;
         } else {
           localStorage.removeItem(workflowKey);
+          localStorage.removeItem('current_progress_state');
         }
       } catch (e) { localStorage.removeItem(workflowKey); }
     }
@@ -609,11 +652,25 @@
       const newPercent = Math.max(percent, highestProgress);
       highestProgress = newPercent;
       
-      // Update UI
+      // Update UI elements
       progressBar.style.width = `${newPercent}%`;
       if (message) messageEl.textContent = message;
       if (status !== undefined) statusEl.textContent = status;
       if (color) progressBar.style.background = color;
+      
+      // Update status box
+      statusBox.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div>${message}</div>
+          ${status ? `<div style="font-size: 0.9em; opacity: 0.8;">${status}</div>` : ''}
+        </div>
+        <div style="margin-left: auto; font-weight: 600;">${newPercent}%</div>
+      `;
+      
+      // Update document title
+      document.title = newPercent < 100 ? 
+        `(${newPercent}%) ${project} - NPI Dashboards` : 
+        'NPI Dashboards';
       
       // Save state
       localStorage.setItem(progressKey, JSON.stringify({
@@ -780,18 +837,60 @@
         }
       }
 
-      // timeout
-      updateProgress(100, '⚠️ Update Timed Out', 'Please try again', '#f0ad4e');
+      // Timeout after max attempts
+      const timeoutMessage = `Update timed out after ${Math.floor((Date.now() - startTime) / 60000)} minutes`;
+      updateProgress(100, '⚠️ Update Timed Out', timeoutMessage, '#f0ad4e');
       localStorage.removeItem(workflowKey);
+      localStorage.removeItem('current_progress_state');
+      
+      // Clean up UI
+      document.querySelectorAll('.nav-item a[data-route] .btn-spinner').forEach(s => s.remove());
+      document.querySelectorAll('.nav-item a[data-route]').forEach(btn => btn.classList.remove('refreshing'));
+      
+      // Show error in status box
+      statusBox.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="color: #f0ad4e">⚠️ Update Timed Out</div>
+          <div style="font-size: 0.9em; opacity: 0.8">${timeoutMessage}</div>
+        </div>
+      `;
+      
       throw new Error('Update timed out');
 
     } catch (error) {
       console.error('Error:', error);
       localStorage.removeItem(workflowKey);
+      localStorage.removeItem('current_progress_state');
+      
+      // Clean up UI
+      document.querySelectorAll('.nav-item a[data-route] .btn-spinner').forEach(s => s.remove());
+      document.querySelectorAll('.nav-item a[data-route]').forEach(btn => btn.classList.remove('refreshing'));
+      
       const msg = (error.message || '').toLowerCase();
       const isCancelled = msg.includes('cancel');
-      updateProgress(100, isCancelled ? '⚠️ Update Cancelled' : '⚠️ Update Failed', 'Please contact support', isCancelled ? '#f0ad4e' : '#ff6b6b');
-      overlay.onclick = () => { overlay.classList.remove('active'); progressBar.style.background = 'var(--philips)'; };
+      const errorColor = isCancelled ? '#f0ad4e' : '#ff6b6b';
+      const errorMessage = isCancelled ? '⚠️ Update Cancelled' : '⚠️ Update Failed';
+      const errorDetails = isCancelled ? 'Operation was cancelled' : 'Please contact support';
+      
+      updateProgress(100, errorMessage, errorDetails, errorColor);
+      
+      // Update status box with error
+      statusBox.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="color: ${errorColor}">${errorMessage}</div>
+          <div style="font-size: 0.9em; opacity: 0.8">${errorDetails}</div>
+        </div>
+      `;
+      
+      // Make overlay dismissible
+      overlay.style.cursor = 'pointer';
+      overlay.title = 'Click to dismiss';
+      overlay.onclick = () => {
+        overlay.classList.remove('active');
+        statusBox.classList.remove('active');
+        setTimeout(() => statusBox.remove(), 300);
+        progressBar.style.background = 'var(--philips)';
+      };
     }
   }
 

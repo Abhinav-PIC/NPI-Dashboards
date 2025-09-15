@@ -39,8 +39,14 @@ jobs:
       - name: Install Dependencies
         shell: bash
         run: |
+          set -euo pipefail
           echo "Installing dependencies (npm ci)..."
-          npm ci --omit=dev --prefer-offline --no-audit --no-fund --no-progress --silent
+          if [[ ! -d "node_modules" || ! -e "package-lock.json" ]]; then
+            echo "Cache miss, installing dependencies..."
+            npm ci --omit=dev --prefer-offline --no-audit --no-fund --no-progress --silent
+          else
+            echo "Cache hit, skipping installation"
+          fi
 
       - name: Capture Screenshots
         shell: bash

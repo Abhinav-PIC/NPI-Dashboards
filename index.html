@@ -73,7 +73,7 @@
 
     /* Refresh Overlay */
     .refresh-overlay {
-      position: absolute;
+      position: fixed;
       inset: 0;
       background: rgba(0,0,0,0.85);
       display: none;
@@ -81,16 +81,12 @@
       align-items: center;
       justify-content: center;
       color: white;
+      z-index: 9999;
       padding: 20px;
-      z-index: 2;
     }
 
     .refresh-overlay.active {
       display: flex;
-    }
-
-    .project.inactive .refresh-overlay.active {
-      display: flex; /* Keep showing overlay even when project tab is inactive */
     }
 
     .refresh-overlay .spinner {
@@ -154,38 +150,73 @@
       transition:opacity 1s ease
     }
 
-    /* Navigation Controls */
+    /* Dropdown Menu */
     .nav-item {
+      position: relative;
       display: inline-block;
     }
 
-    .nav-controls {
+    .dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: var(--bar);
+      border-radius: 8px;
+      padding: 8px;
+      min-width: 220px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.2);
+      z-index: 1000;
+      margin-top: 2px;
+    }
+
+    /* Add padding to create hoverable area between button and dropdown */
+    .nav-item::after {
+      content: '';
+      position: absolute;
+      height: 10px;
+      left: 0;
+      right: 0;
+      bottom: -10px;
+    }
+
+    /* Show dropdown on hover and keep it visible while hovering the gap */
+    .nav-item:hover .dropdown {
+      display: block;
+      animation: fadeIn 0.1s ease-out;
+    }
+
+    .dropdown-item {
       display: flex;
       align-items: center;
       gap: 8px;
+      padding: 12px 16px;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      transition: background .15s ease-in-out;
+      font-weight: 500;
+      white-space: nowrap;
     }
 
-    .refresh-btn {
-      padding: 8px !important;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .refresh-btn svg {
-      width: 20px;
-      height: 20px;
-      fill: currentColor;
-    }
-
-    .refresh-btn:hover {
+    .dropdown-item:hover {
       background: var(--btnH);
     }
 
-    .project.refreshing .refresh-btn {
-      animation: spin 1s linear infinite;
-      background: var(--warning);
-      pointer-events: none;
+    .dropdown-item svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+      flex-shrink: 0;
+    }
+
+    .dropdown-item.refresh-button {
+      color: var(--warning);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     .btn{display:inline-block;border:0;border-radius:12px;padding:8px 14px;font-weight:700;color:#fff;background:#104071;text-decoration:none}
     .btn{transition:transform .12s ease, box-shadow .12s ease, background-color .12s ease}
@@ -236,6 +267,16 @@
   </style>
 </head>
 <body>
+  <!-- Refresh Overlay -->
+  <div id="refresh-overlay" class="refresh-overlay">
+    <div class="spinner"></div>
+    <div class="message">Capturing latest dashboard data</div>
+    <div class="progress-container">
+      <div class="progress-bar"></div>
+    </div>
+    <div class="status"></div>
+  </div>
+
   <!-- SPLASH -->
   <div id="splash" class="splash">
     <div class="splash-fit">
@@ -263,29 +304,44 @@
     <a class="btn" href="#home" data-route="home">Home</a>
     
     <div class="nav-item">
-      <div class="nav-controls">
-        <a class="btn" href="#vm13" data-route="vm13">VM 13.0</a>
-        <button class="btn refresh-btn" onclick="refreshDashboards('VM 13.0')" title="Refresh VM 13.0 Dashboards">
+      <a class="btn" href="#vm13" data-route="vm13">VM 13.0</a>
+      <div class="dropdown">
+  <a class="dropdown-item refresh-button" href="#" onclick="refreshDashboards('VM 13.0')">
           <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-        </button>
+          Refresh Dashboards
+        </a>
+        <a class="dropdown-item edit-button" href="https://app.smartsheet.eu/workspaces/W7JvM9F6XMVhxv7ffw4rVJfg4CM7xgfxjPC5JHf1" target="_blank">
+          <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+          Edit Data
+        </a>
       </div>
     </div>
 
     <div class="nav-item">
-      <div class="nav-controls">
-        <a class="btn" href="#blaze" data-route="blaze">Blaze 1.0</a>
-        <button class="btn refresh-btn" onclick="refreshDashboards('Blaze 1.0')" title="Refresh Blaze 1.0 Dashboards">
+      <a class="btn" href="#blaze" data-route="blaze">Blaze 1.0</a>
+      <div class="dropdown">
+  <a class="dropdown-item refresh-button" href="#" onclick="refreshDashboards('Blaze 1.0')">
           <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-        </button>
+          Refresh Dashboards
+        </a>
+        <a class="dropdown-item edit-button" href="https://app.smartsheet.eu/workspaces/MP68x2GxfFg79xcqvJhFw5hjhGQQ9j7G5G3QXQh1" target="_blank">
+          <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+          Edit Data
+        </a>
       </div>
     </div>
 
     <div class="nav-item">
-      <div class="nav-controls">
-        <a class="btn" href="#vm14" data-route="vm14">VM 14.0</a>
-        <button class="btn refresh-btn" onclick="refreshDashboards('VM 14.0')" title="Refresh VM 14.0 Dashboards">
+      <a class="btn" href="#vm14" data-route="vm14">VM 14.0</a>
+      <div class="dropdown">
+  <a class="dropdown-item refresh-button" href="#" onclick="refreshDashboards('VM 14.0')">
           <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-        </button>
+          Refresh Dashboards
+        </a>
+        <a class="dropdown-item edit-button" href="https://app.smartsheet.eu/workspaces/gM9wv3Rqwphqjj6hj4gHrGfPmrJWMFhhfCf7X6G1" target="_blank">
+          <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+          Edit Data
+        </a>
       </div>
     </div>
     
@@ -307,14 +363,6 @@
 
     <!-- VM13 -->
     <div id="view-vm13" class="project inactive">
-      <div class="refresh-overlay" data-project="VM 13.0">
-        <div class="spinner"></div>
-        <div class="message">Capturing latest dashboard data</div>
-        <div class="progress-container">
-          <div class="progress-bar"></div>
-        </div>
-        <div class="status"></div>
-      </div>
       <div class="slides">
         <div class="slide active"><img src="snapshots/2025-09/VM 13.0/Dashboard-1.png" alt="VM13 Dashboard 1" loading="eager"></div>
         <div class="slide"><img src="snapshots/2025-09/VM 13.0/Dashboard-2.png" alt="VM13 Dashboard 2"></div>
@@ -327,14 +375,6 @@
 
     <!-- Blaze -->
     <div id="view-blaze" class="project inactive">
-      <div class="refresh-overlay" data-project="Blaze 1.0">
-        <div class="spinner"></div>
-        <div class="message">Capturing latest dashboard data</div>
-        <div class="progress-container">
-          <div class="progress-bar"></div>
-        </div>
-        <div class="status"></div>
-      </div>
       <div class="slides">
         <div class="slide active"><img src="snapshots/2025-09/Blaze 1.0/Dashboard-1.png" alt="Blaze Dashboard 1" loading="eager"></div>
         <div class="slide"><img src="snapshots/2025-09/Blaze 1.0/Dashboard-2.png" alt="Blaze Dashboard 2"></div>
@@ -346,14 +386,6 @@
 
     <!-- VM14 -->
     <div id="view-vm14" class="project inactive">
-      <div class="refresh-overlay" data-project="VM 14.0">
-        <div class="spinner"></div>
-        <div class="message">Capturing latest dashboard data</div>
-        <div class="progress-container">
-          <div class="progress-bar"></div>
-        </div>
-        <div class="status"></div>
-      </div>
       <div class="slides">
         <div class="slide active"><img src="snapshots/2025-09/VM 14.0/Dashboard-1.png" alt="VM14 Dashboard 1" loading="eager"></div>
         <div class="slide"><img src="snapshots/2025-09/VM 14.0/Dashboard-2.png" alt="VM14 Dashboard 2"></div>
@@ -505,49 +537,38 @@
   }
 
   async function refreshDashboards(project) {
-    let overlay, messageEl, progressBar, statusEl, projectId;
+    const overlay = document.getElementById('refresh-overlay');
+    const messageEl = overlay.querySelector('.message');
+    const progressBar = overlay.querySelector('.progress-bar');
+    const statusEl = overlay.querySelector('.status');
+    overlay.classList.add('active');
+    overlay.onclick = null;
+
+    // Check for existing workflow
+    const workflowKey = 'current_workflow_update';
+    const existingWorkflow = localStorage.getItem(workflowKey);
+    
+    if (existingWorkflow) {
+      const workflowData = JSON.parse(existingWorkflow);
+      const isRecent = Date.now() - workflowData.timestamp < 180000; // 3 minutes
+      
+      if (isRecent) {
+        // Resume existing workflow
+        messageEl.textContent = 'Resuming update...';
+        statusEl.textContent = `Continuing update for ${workflowData.project}`;
+        progressBar.style.width = '30%';
+      } else {
+        localStorage.removeItem(workflowKey);
+      }
+    }
+
+    const updateProgress = (percent, message, status) => {
+      progressBar.style.width = `${percent}%`;
+      if (message) messageEl.textContent = message;
+      if (status) statusEl.textContent = status;
+    };
 
     try {
-      // Find the project's view element and its overlay
-      projectId = project.toLowerCase().replace(/\s+/g, '').replace('.', '');
-      const projectView = document.getElementById(`view-${projectId}`);
-      if (!projectView) throw new Error('Project view not found');
-      
-      overlay = projectView.querySelector('.refresh-overlay');
-      messageEl = overlay.querySelector('.message');
-      progressBar = overlay.querySelector('.progress-bar');
-      statusEl = overlay.querySelector('.status');
-      
-      // Reset and show overlay
-      progressBar.style.width = '0%';
-      progressBar.style.background = 'var(--philips)';
-      overlay.classList.add('active');
-      overlay.onclick = null;
-
-      // Check for existing workflow
-      const existingWorkflow = localStorage.getItem(`workflow_${projectId}`);
-      if (existingWorkflow) {
-        const workflowData = JSON.parse(existingWorkflow);
-        const isRecent = Date.now() - workflowData.timestamp < 180000; // 3 minutes
-        
-        if (isRecent) {
-          // Resume existing workflow
-          messageEl.textContent = 'Resuming update...';
-          statusEl.textContent = `Continuing update for ${workflowData.project}`;
-          progressBar.style.width = '30%';
-        } else {
-          localStorage.removeItem(`workflow_${projectId}`);
-        }
-      }
-
-      const updateProgress = (percent, message, status) => {
-        requestAnimationFrame(() => {
-          progressBar.style.width = `${percent}%`;
-          if (message) messageEl.textContent = message;
-          if (status) statusEl.textContent = status;
-        });
-      };
-
       // Check if token exists
       if (!WORKFLOW_PAT_NEW || WORKFLOW_PAT_NEW === '${{ secrets.WORKFLOW_PAT_NEW }}') {
         throw new Error('GitHub token not properly configured');
@@ -592,117 +613,121 @@
       // Store workflow ID in localStorage to track refresh
       const workflowKey = 'current_workflow_update';
       
-      // Start the workflow
-      const initResponse = await fetch('https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards/dispatches', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'Authorization': `Bearer ${WORKFLOW_PAT_NEW}`,
-          'Content-Type': 'application/json',
-          'X-GitHub-Api-Version': '2022-11-28'
-        },
-        body: JSON.stringify({
-          event_type: 'repository_dispatch',
-          client_payload: { project: fullProjectName }
-        })
-      });
-
-      if (!initResponse.ok) {
-        throw new Error(`GitHub API Error: ${initResponse.status}`);
-      }
-
-      updateProgress(20, 'Installing dependencies...', 'Setting up environment');
-      
       // Poll for completion
-      for (let i = 0; i < 36; i++) { // 3 minutes max
+      for (let i = 0; i < 36; i++) {
         await new Promise(r => setTimeout(r, 5000));
         
-        const statusResponse = await fetch(
-          'https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards/actions/runs?event=repository_dispatch&per_page=1',
-          {
-            headers: {
-              'Accept': 'application/vnd.github.v3+json',
-              'Authorization': `Bearer ${WORKFLOW_PAT_NEW}`
+        try {
+          const response = await fetch(
+            'https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards/actions/runs?event=repository_dispatch&per_page=1',
+            {
+              headers: {
+                'Accept': 'application/vnd.github.v3+json',
+                'Authorization': `Bearer ${WORKFLOW_PAT_NEW}`
+              }
+            }
+          );
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch workflow status');
+          }
+
+          const { workflow_runs } = await response.json();
+
+          if (!workflow_runs?.[0]) {
+            updateProgress(30, 'Capturing latest data...', 'Processing dashboard information');
+            continue;
+          }
+
+          const run = workflow_runs[0];
+          const status = run.status;
+          
+          // Store workflow run ID and status
+          localStorage.setItem(workflowKey, JSON.stringify({
+            id: run.id,
+            status: status,
+            conclusion: run.conclusion,
+            project: fullProjectName,
+            timestamp: Date.now()
+          }));
+
+          // Check for cancellation or failure
+          if (status === 'completed') {
+            if (run.conclusion === 'cancelled') {
+              throw new Error('Update cancelled');
+            } else if (run.conclusion === 'failure') {
+              throw new Error('Update failed');
             }
           }
-        );
-        
-        if (!statusResponse.ok) {
-          throw new Error('Failed to fetch workflow status');
-        }
 
-        const { workflow_runs } = await statusResponse.json();
-        if (!workflow_runs?.[0]) {
-          updateProgress(30, 'Capturing latest data...', 'Processing dashboard information');
-          continue;
-        }
+          // Get total dashboard count based on project
+          const dashboardCount = fullProjectName === 'VM 14.0' ? 7 : 
+                               fullProjectName === 'VM 13.0' ? 5 : 
+                               fullProjectName === 'Blaze 1.0' ? 4 : 0;
+          
+          // Calculate progress based on workflow steps
+          const progress = (() => {
+            switch(status) {
+              case 'queued': return 10;
+              case 'in_progress': {
+                // Get steps from workflow
+                const stepsCompleted = Math.min(i + 1, dashboardCount); // Use polling iteration as a progress indicator
+                return Math.min(20 + (stepsCompleted / dashboardCount * 60), 80);
+              }
+              case 'completed': return run.conclusion === 'success' ? 100 : 0;
+              default: return 30;
+            }
+          })();
+          
+          // Update the UI with current progress
+          updateProgress(
+            progress,
+            status === 'in_progress' ? 'Updating dashboards...' : 
+            status === 'queued' ? 'Waiting for workflow to start...' : 
+            status === 'completed' && run.conclusion === 'success' ? 'Update complete!' : 'Processing...',
+            status === 'in_progress' ? `Processing dashboard ${Math.min(i + 1, dashboardCount)}/${dashboardCount}` :
+            status === 'queued' ? 'In queue' :
+            status === 'completed' && run.conclusion === 'success' ? 'Refreshing page...' : ''
+          );
 
-        const run = workflow_runs[0];
-        const status = run.status;
-
-        // Store workflow state
-        localStorage.setItem(`workflow_${projectId}`, JSON.stringify({
-          id: run.id,
-          status,
-          conclusion: run.conclusion,
-          project: fullProjectName,
-          timestamp: Date.now()
-        }));
-
-        // Handle completion states
-        if (status === 'completed') {
-          if (run.conclusion === 'cancelled') {
-            throw new Error('Update cancelled');
-          } else if (run.conclusion === 'failure') {
-            throw new Error('Update failed');
-          } else if (run.conclusion === 'success') {
-            updateProgress(100, 'Update complete!', 'Refreshing page...');
-            localStorage.removeItem(`workflow_${projectId}`);
+          if (status === 'completed' && run.conclusion === 'success') {
+            localStorage.removeItem(workflowKey);
             setTimeout(() => window.location.reload(), 1000);
             return;
           }
-        }
 
-        // Get total dashboard count
-        const dashboardCount = fullProjectName === 'VM 14.0' ? 7 : 
-                             fullProjectName === 'VM 13.0' ? 5 : 
-                             fullProjectName === 'Blaze 1.0' ? 4 : 0;
-
-        // Update progress based on status
-        if (status === 'in_progress') {
-          const currentDashboard = Math.min(i + 1, dashboardCount);
-          const progress = Math.min(20 + (currentDashboard / dashboardCount * 60), 80);
-          updateProgress(
-            progress,
-            'Updating dashboards...',
-            `Processing dashboard ${currentDashboard}/${dashboardCount}`
-          );
-        } else if (status === 'queued') {
-          updateProgress(10, 'Waiting for workflow to start...', 'In queue');
+        } catch (error) {
+          console.error('Error checking workflow status:', error);
+          throw new Error('Failed to check workflow status');
         }
       }
-
-      // Timeout after 3 minutes
+      // If we get here, we've timed out
+      updateProgress(100, '⚠️ Update Timed Out', 'Please try again');
+      progressBar.style.background = '#f0ad4e';
+      localStorage.removeItem(workflowKey);
       throw new Error('Update timed out');
 
     } catch (error) {
       console.error('Error:', error);
+      const errorType = error.message.includes('cancelled') ? 'cancelled' :
+                       error.message.includes('failed') ? 'failed' :
+                       'error';
       
-      if (overlay && messageEl && statusEl && progressBar) {
-        const isCancelled = error.message.includes('cancelled');
-        messageEl.textContent = isCancelled ? '⚠️ Update Cancelled' : '⚠️ Update Failed';
-        statusEl.textContent = 'Please contact support';
-        progressBar.style.width = '100%';
-        progressBar.style.background = isCancelled ? '#f0ad4e' : '#ff6b6b';
-        overlay.onclick = () => {
-          overlay.classList.remove('active');
-          progressBar.style.background = 'var(--philips)';
-        };
-      }
-
-      if (projectId) {
-        localStorage.removeItem(`workflow_${projectId}`);
-      }
+      // Clear the workflow storage
+      localStorage.removeItem(workflowKey);
+      
+      // Update UI based on error type
+      messageEl.textContent = errorType === 'cancelled' ? '⚠️ Update Cancelled' : 
+                             '⚠️ Update Failed';
+      statusEl.textContent = 'Please contact support';
+      progressBar.style.width = '100%';
+      progressBar.style.background = errorType === 'cancelled' ? '#f0ad4e' : '#ff6b6b';
+      
+      // Make overlay clickable to dismiss
+      overlay.onclick = () => {
+        overlay.classList.remove('active');
+        progressBar.style.background = 'var(--philips)'; // Reset progress bar color
+      };
     }
   }
 

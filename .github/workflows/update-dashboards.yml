@@ -1,5 +1,9 @@
 name: Update Dashboards
-run-name: Update ${{ github.event.inputs.project || github.event.client_payload.project }} Dashboards
+run-name: Update       - name: Install Dependencies
+        shell: bash
+        run: |
+          echo "Installing dependencies..."
+          npm clean-install --omit=dev --prefer-offline --no-audit --no-fund --silentub.event.inputs.project || github.event.client_payload.project }} Dashboards
 
 on:
   workflow_dispatch:

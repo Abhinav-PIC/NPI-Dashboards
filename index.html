@@ -14,16 +14,12 @@
       --philips:#0e5fd8;
       --bar:#0b2b4f;
       --btn:#003366;
+      --btnH:#0059b3;
       --btnDis:#7a94b8;
       --warning:#ffcc00;
     }
 
     html,body{margin:0;height:100%;overflow:hidden;background:#fff;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;}
-
-    @keyframes spin {
-      0% { transform: translateY(-50%) rotate(0deg); }
-      100% { transform: translateY(-50%) rotate(360deg); }
-    }
 
     /* Veil */
     .veil{position:fixed;inset:0;background:#fff;opacity:1;transition:opacity .6s ease;pointer-events:none;z-index:9998;}
@@ -51,66 +47,139 @@
     @keyframes loadingIn{from{opacity:0;transform:translate(-50%,-55%)}to{opacity:1;transform:translate(-50%,-50%)}}
     @media (max-width:420px){.loading{font-size:clamp(18px,5.5vw,28px)}}
 
-    .sparkles{position:relative;width:1.25em;height:1.25em;display:inline-block;margin:0 .08em}
-    .sparkles svg{position:absolute;inset:0;width:100%;height:100%;fill:#fff}
-    .sparkles .back{opacity:.45;transform:translate(.18em,-.14em) scale(.78)}
-    .sparkles .front{opacity:1}
-    .splash.fade-out{animation:fadeSplash .8s ease-in forwards}
-
-    @keyframes logoIn{to{opacity:1;transform:translateY(0)}}
-    @keyframes logoOut{to{opacity:0;transform:translateY(-20px)}}
-    @keyframes tagSlide{to{opacity:1;transform:translateX(0)}}
-    @keyframes tagFade{to{opacity:0;transform:translateX(-20px)}}
-    @keyframes fadeSplash{to{opacity:0;visibility:hidden}}
-
-    .sparkles{position:relative;width:1.25em;height:1.25em;display:inline-block;margin:0 .08em}
-    .sparkles svg{position:absolute;inset:0;width:100%;height:100%;fill:#fff}
-    .sparkles .back{opacity:.45;transform:translate(.18em,-.14em) scale(.78)}
-    .sparkles .front{opacity:1}
-    .splash.fade-out{animation:fadeSplash .8s ease-in forwards}
-
-    @keyframes logoIn{to{opacity:1;transform:translateY(0)}}
-    @keyframes logoOut{to{opacity:0;transform:translateY(-20px)}}
-    @keyframes tagSlide{to{opacity:1;transform:translateX(0)}}
-    @keyframes tagFade{to{opacity:0;transform:translateX(-20px)}}
-    @keyframes fadeSplash{to{opacity:0;visibility:hidden}}
-
-    /* Status Box */
-    .status-box {
+    /* Floating Status Panel */
+    .refresh-status {
       position: fixed;
-      top: 70px;
+      bottom: 20px;
       right: 20px;
-      background: var(--bar);
-      padding: 12px 16px;
-      border-radius: 8px;
+      background: rgba(0,0,0,0.9);
+      border-radius: 12px;
+      padding: 16px;
       color: white;
+      width: 300px;
       z-index: 9999;
-      pointer-events: all;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      opacity: 0;
-      transform: translateY(-10px);
-      transition: all 0.3s ease;
-      max-width: 400px;
-      min-width: 280px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      transform: translateY(200%);
+      transition: transform 0.3s ease;
     }
-    
-    .status-box.active {
-      opacity: 1;
+
+    .refresh-status.active {
       transform: translateY(0);
     }
-    
-    .status-box .progress-bar {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      height: 3px;
+
+    .refresh-status .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .refresh-status .title {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .refresh-status .close {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .refresh-status .progress-bar {
+      height: 4px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2px;
+      margin: 8px 0;
+    }
+
+    .refresh-status .progress-fill {
+      height: 100%;
       background: var(--philips);
-      transition: width 0.5s ease;
-      border-radius: 0 0 8px 8px;
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    .refresh-status .status-text {
+      font-size: 13px;
+      color: rgba(255,255,255,0.8);
+    }
+
+    /* Navigation Refresh Indicator */
+    .nav-item .refresh-indicator {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--warning);
+      border: 2px solid var(--bar);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .nav-item.refreshing .refresh-indicator {
+      opacity: 1;
+    }
+
+    .nav-item.refreshing .btn {
+      position: relative;
+    }
+
+    .nav-item.refreshing .btn::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border: 2px solid var(--warning);
+      border-radius: 14px;
+      opacity: 0.6;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 0.6; }
+      50% { transform: scale(1.1); opacity: 0.3; }
+      100% { transform: scale(1); opacity: 0.6; }
+    }
+
+    .sparkles{position:relative;width:1.25em;height:1.25em;display:inline-block;margin:0 .08em}
+    .sparkles svg{position:absolute;inset:0;width:100%;height:100%;fill:#fff}
+    .sparkles .back{opacity:.45;transform:translate(.18em,-.14em) scale(.78)}
+    .sparkles .front{opacity:1}
+    .splash.fade-out{animation:fadeSplash .8s ease-in forwards}
+
+    @keyframes logoIn{to{opacity:1;transform:translateY(0)}}
+    @keyframes logoOut{to{opacity:0;transform:translateY(-20px)}}
+    @keyframes tagSlide{to{opacity:1;transform:translateX(0)}}
+    @keyframes tagFade{to{opacity:0;transform:translateX(-20px)}}
+    @keyframes fadeSplash{to{opacity:0;visibility:hidden}}
+
+    .sparkles{position:relative;width:1.25em;height:1.25em;display:inline-block;margin:0 .08em}
+    .sparkles svg{position:absolute;inset:0;width:100%;height:100%;fill:#fff}
+    .sparkles .back{opacity:.45;transform:translate(.18em,-.14em) scale(.78)}
+    .sparkles .front{opacity:1}
+    .splash.fade-out{animation:fadeSplash .8s ease-in forwards}
+
+    @keyframes logoIn{to{opacity:1;transform:translateY(0)}}
+    @keyframes logoOut{to{opacity:0;transform:translateY(-20px)}}
+    @keyframes tagSlide{to{opacity:1;transform:translateX(0)}}
+    @keyframes tagFade{to{opacity:0;transform:translateX(-20px)}}
+    @keyframes fadeSplash{to{opacity:0;visibility:hidden}}
+
+    /* Refresh Overlay */
+    .refresh-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      z-index: 9999;
+      padding: 20px;
     }
 
     .refresh-overlay.active {
@@ -295,13 +364,16 @@
   </style>
 </head>
 <body>
-  <!-- Status Box for Refresh Progress -->
-  <div id="status-box" class="status-box">
-    <div class="status-content">
-      <div class="message"></div>
-      <div class="status"></div>
+  <!-- Refresh Status Panel -->
+  <div class="refresh-status" id="refresh-status">
+    <div class="header">
+      <div class="title">Updating Dashboards</div>
+      <button class="close" onclick="minimizeRefreshStatus()">✕</button>
     </div>
-    <div class="progress-bar"></div>
+    <div class="progress-bar">
+      <div class="progress-fill" style="width: 0%"></div>
+    </div>
+    <div class="status-text">Initializing...</div>
   </div>
 
   <!-- SPLASH -->
@@ -563,391 +635,269 @@
     updateNavSelection(project);
   }
 
+  // Refresh timer constants
+  const AUTO_REFRESH_DELAY = 600000; // 10 minutes in milliseconds
+  let refreshTimer = null;
+
+  function minimizeRefreshStatus() {
+    document.getElementById('refresh-status').classList.remove('active');
+  }
+
   async function refreshDashboards(project) {
-    // Setup UI elements
-    const statusBox = document.getElementById('status-box');
-    const messageEl = statusBox.querySelector('.message');
-    const statusEl = statusBox.querySelector('.status');
-    const progressBar = statusBox.querySelector('.progress-bar');
+    const statusPanel = document.getElementById('refresh-status');
+    const progressFill = statusPanel.querySelector('.progress-fill');
+    const statusText = statusPanel.querySelector('.status-text');
     
-    // Show status box with animation
-    statusBox.classList.add('active');
+    // Show floating status instead of overlay
+    statusPanel.classList.add('active');
     
-    // Disable all refresh buttons for this project
-    const projectId = project.toLowerCase().replace(/\s+/g, '').replace(/\./g, '');
-    document.querySelectorAll(`.dropdown-item.refresh-button[onclick*="${project}"]`).forEach(btn => {
-      btn.style.opacity = '0.5';
-      btn.style.cursor = 'not-allowed';
-      btn.onclick = (e) => e.preventDefault();
-    });
-    
-    // Update all navigation buttons to show refresh state
-    const projectRoute = project.toLowerCase().replace(/\s+/g, '').replace(/\./g, '');
-    document.querySelectorAll('.nav-item a[data-route]').forEach(btn => {
-      if (btn.dataset.route === projectRoute) {
-        btn.classList.add('refreshing');
-        btn.style.position = 'relative';
-        const spinner = document.createElement('div');
-        spinner.className = 'btn-spinner';
-        spinner.style.cssText = 'width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); animation: spin 1s linear infinite;';
-        btn.appendChild(spinner);
-      }
-    });
-
-    // Local storage keys
-    const workflowKey = 'current_workflow_update';
-    const existingWorkflow = localStorage.getItem(workflowKey);
-    const startTime = Date.now();
-
-    // Check for existing workflow
-    if (existingWorkflow) {
-      try {
-        const workflowData = JSON.parse(existingWorkflow);
-        const elapsed = Date.now() - workflowData.timestamp;
-        const isRecent = elapsed < 15 * 60 * 1000; // 15 minutes
-        
-        if (isRecent) {
-          const minutes = Math.floor(elapsed / 60000);
-          messageEl.textContent = 'Resuming update...';
-          statusEl.textContent = `Continuing update for ${workflowData.project} (started ${minutes}m ago)`;
-          progressBar.style.width = '30%';
-          
-          // Update status box
-          statusBox.innerHTML = `
-            <div style="display: flex; flex-direction: column; gap: 4px;">
-              <div>Resuming Dashboard Update</div>
-              <div style="font-size: 0.9em; opacity: 0.8">Reconnecting to workflow</div>
-            </div>
-            <div style="margin-left: auto; font-weight: 600">30%</div>
-          `;
-        } else {
-          localStorage.removeItem(workflowKey);
-          localStorage.removeItem('current_progress_state');
-        }
-      } catch (e) { localStorage.removeItem(workflowKey); }
+    // Clear any existing refresh timer
+    if (refreshTimer) {
+      clearTimeout(refreshTimer);
     }
 
-    // Track highest progress and last known state
-    let highestProgress = 0;
-    const progressKey = 'current_progress_state';
-    
-    try {
-      const savedProgress = localStorage.getItem(progressKey);
-      if (savedProgress) {
-        const progressData = JSON.parse(savedProgress);
-        highestProgress = progressData.percent || 0;
-      }
-    } catch (e) {}
+    // Set up auto-refresh timer
+    refreshTimer = setTimeout(() => {
+      statusText.textContent = 'Refreshing page...';
+      // Add a small delay before refresh to show the message
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    }, AUTO_REFRESH_DELAY);
 
-    const updateProgress = (percent, message, status, color) => {
-      // Never go backwards in progress
-      const newPercent = Math.max(percent, highestProgress);
-      highestProgress = newPercent;
+    // Store refresh start time in localStorage
+    localStorage.setItem('refresh_start_time', Date.now().toString());
+
+    // Check for existing workflow
+    const workflowKey = 'current_workflow_update';
+    const existingWorkflow = localStorage.getItem(workflowKey);
+    
+    if (existingWorkflow) {
+      const workflowData = JSON.parse(existingWorkflow);
+      const isRecent = Date.now() - workflowData.timestamp < 180000; // 3 minutes
       
-      // Update UI elements
-      progressBar.style.width = `${newPercent}%`;
-      if (message) messageEl.textContent = message;
-      if (status !== undefined) statusEl.textContent = status;
-      
-      // Update status content
-      statusBox.querySelector('.status-content').innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px">
-          <div style="font-weight: 600">${message}</div>
-          <div style="font-weight: 600">${newPercent}%</div>
-        </div>
-        ${status ? `<div style="font-size: 0.9em; opacity: 0.8">${status}</div>` : ''}
-      `;
-      
-      // Update document title for progress
-      document.title = newPercent < 100 ? 
-        `(${newPercent}%) ${project} - NPI Dashboards` : 
-        'NPI Dashboards';
-      
-      // Save state
-      localStorage.setItem(progressKey, JSON.stringify({
-        percent: newPercent,
-        message,
+      if (isRecent) {
+        // Resume existing workflow
+        statusText.textContent = `Continuing update for ${workflowData.project}`;
+        progressFill.style.width = '30%';
+      } else {
+        localStorage.removeItem(workflowKey);
+      }
+    }
+
+    const updateProgress = (percent, status) => {
+      progressFill.style.width = `${percent}%`;
+      if (status) statusText.textContent = status;
+      storeRefreshState({
+        percent,
         status,
-        timestamp: Date.now(),
-        project
-      }));
+        project,
+        timestamp: Date.now()
+      });
     };
 
     try {
-      // Allow a runtime token via URL for local testing: ?token=xxx
-      const urlToken = new URLSearchParams(location.search).get('token');
-      const token = urlToken || WORKFLOW_PAT_NEW;
-      if (!token || token === '${{ secrets.WORKFLOW_PAT_NEW }}') {
+      // Check if token exists
+      if (!WORKFLOW_PAT_NEW || WORKFLOW_PAT_NEW === '${{ secrets.WORKFLOW_PAT_NEW }}') {
         throw new Error('GitHub token not properly configured');
       }
 
-      const fullProjectName = (typeof project === 'string') ? project.trim().replace(/^['"]|['"]$/g, '') : project;
-      if (!['VM 13.0','Blaze 1.0','VM 14.0'].includes(fullProjectName)) {
+      // Clean and validate project name
+      const fullProjectName = (typeof project === 'string') ? project.replace(/^\s+|\s+$/g, '').replace(/^['"]|['"]$/g, '') : project;
+      if (fullProjectName !== 'VM 13.0' && fullProjectName !== 'Blaze 1.0' && fullProjectName !== 'VM 14.0') {
         throw new Error(`Invalid project name: ${fullProjectName}`);
       }
 
-      updateProgress(8, 'Initializing workflow...', 'Starting update process');
-
-      // Trigger repository_dispatch
-      console.log('Triggering workflow for project:', fullProjectName);
-      const dispatchResp = await fetch('https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards/dispatches', {
+      // Initialize workflow
+      updateProgress(10, 'Initializing workflow...', 'Starting update process');
+      
+      const response = await fetch('https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards/dispatches', {
         method: 'POST',
         headers: {
           'Accept': 'application/vnd.github.v3+json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${WORKFLOW_PAT_NEW}`,
           'Content-Type': 'application/json',
           'X-GitHub-Api-Version': '2022-11-28'
         },
-        body: JSON.stringify({ 
-          event_type: 'dashboard_update',  // Match the workflow's types exactly
-          client_payload: { 
-            project: fullProjectName,
-            timestamp: Date.now()
-          } 
+        body: JSON.stringify({
+          event_type: 'repository_dispatch',
+          client_payload: { project: fullProjectName }
         })
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('GitHub API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        throw new Error(`GitHub API Error: ${response.status} - ${errorText || response.statusText}`)
+      }
+
+      updateProgress(20, 'Installing dependencies...', 'Setting up environment');
+
+      let lastWorkflowStatus = '';
+      // Store workflow ID in localStorage to track refresh
+      const workflowKey = 'current_workflow_update';
       
-      console.log('Dispatch response status:', dispatchResp.status);
-
-      if (!dispatchResp.ok) {
-        const text = await dispatchResp.text();
-        throw new Error(`GitHub dispatch failed: ${dispatchResp.status} ${text}`);
-      }
-
-      updateProgress(18, 'Installing dependencies...', 'Preparing runner');
-
-      // Poll for the run started by our dispatch. We'll try to find the latest run for this event.
-      let runId = null;
-      for (let attempt = 0; attempt < 36; attempt++) {
+      // Poll for completion
+      for (let i = 0; i < 36; i++) {
         await new Promise(r => setTimeout(r, 5000));
-        const runsResp = await fetch('https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards/actions/runs?event=repository_dispatch&per_page=5', {
-          headers: { 'Accept': 'application/vnd.github.v3+json', 'Authorization': `Bearer ${token}` }
-        });
-        if (!runsResp.ok) continue;
-        const runsJson = await runsResp.json();
-        const run = (runsJson.workflow_runs || []).find(r => r.head_commit && r.head_commit.message && r.head_commit.message.includes(fullProjectName)) || runsJson.workflow_runs?.[0];
-        if (run && run.id) { runId = run.id; break; }
-      }
-
-      if (!runId) {
-        updateProgress(30, 'Capturing latest data...', 'Waiting for workflow to start');
-        throw new Error('Failed to find workflow run');
-      }
-
-      // persist run info so we can resume
-      localStorage.setItem(workflowKey, JSON.stringify({ id: runId, project: fullProjectName, timestamp: Date.now() }));
-
-      // Helper to fetch jobs & steps for the run and compute progress
-      async function fetchRunJobs(runId) {
-        console.log('Fetching jobs for run ID:', runId);
-        const jobsResp = await fetch(`https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards/actions/runs/${runId}/jobs?per_page=100`, {
-          headers: { 'Accept': 'application/vnd.github.v3+json', 'Authorization': `Bearer ${token}` }
-        });
-        if (!jobsResp.ok) throw new Error('Failed to fetch run jobs');
-        const data = await jobsResp.json();
-        console.log('Job status:', data.jobs?.map(j => `${j.name}: ${j.status} (${j.conclusion || 'running'})`));
-        return data;
-      }
-
-      // Main poll loop: use job steps to compute accurate progress and messages
-      for (let i = 0; i < 180; i++) {  // Increased timeout to 12 minutes
-        await new Promise(r => setTimeout(r, 4000));
+        
         try {
-          console.log('Polling workflow run:', runId);
-          const runJobs = await fetchRunJobs(runId);
-          const jobs = runJobs.jobs || [];
-          console.log('Found jobs:', jobs.length);
-
-          // Flatten steps and filter ones that look like dashboard capture steps
-          const allSteps = [];
-          jobs.forEach(job => {
-            (job.steps || []).forEach(s => allSteps.push({ jobName: job.name, ...s }));
-          });
-
-          // Find steps related to dashboard capture and upload
-          const dashSteps = allSteps.filter(s => /dashboard|capture|snapshot|publish|upload/i.test(s.name));
-          console.log('Dashboard steps:', dashSteps.map(s => `${s.name}: ${s.status} (${s.conclusion || 'running'})`));
+          const response = await fetch(
+            'https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards/actions/runs?event=repository_dispatch&per_page=1',
+            {
+              headers: {
+                'Accept': 'application/vnd.github.v3+json',
+                'Authorization': `Bearer ${WORKFLOW_PAT_NEW}`
+              }
+            }
+          );
           
-          // Calculate expected total based on project
-          const totalSteps = fullProjectName === 'VM 14.0' ? 7 : 
-                           fullProjectName === 'VM 13.0' ? 5 : 
-                           fullProjectName === 'Blaze 1.0' ? 4 : 0;
+          if (!response.ok) {
+            throw new Error('Failed to fetch workflow status');
+          }
 
-          // Track completion status
-          const completed = dashSteps.filter(s => s.conclusion === 'success').length;
-          const inProgress = dashSteps.find(s => s.status === 'in_progress');
-          const currentIndex = inProgress ? dashSteps.indexOf(inProgress) + 1 : 
-                             (completed < totalSteps ? completed + 1 : totalSteps);
+          const { workflow_runs } = await response.json();
+
+          if (!workflow_runs?.[0]) {
+            updateProgress(30, 'Capturing latest data...', 'Processing dashboard information');
+            continue;
+          }
+
+          const run = workflow_runs[0];
+          const status = run.status;
           
-          console.log(`Progress: ${completed}/${totalSteps} steps done, current step: ${currentIndex}`);
+          // Store workflow run ID and status
+          localStorage.setItem(workflowKey, JSON.stringify({
+            id: run.id,
+            status: status,
+            conclusion: run.conclusion,
+            project: fullProjectName,
+            timestamp: Date.now()
+          }));
 
-          // Find overall run status from job array and ensure we have actual progress
-          const runStatus = jobs.length === 0 ? 'queued' :
-                          jobs.some(j => j.status === 'in_progress') ? 'in_progress' :
-                          (jobs.every(j => j.conclusion === 'success') && completed >= totalSteps) ? 'completed' :
-                          jobs.some(j => j.conclusion === 'failure') ? 'failed' : 'in_progress';
+          // Check for cancellation or failure
+          if (status === 'completed') {
+            if (run.conclusion === 'cancelled') {
+              throw new Error('Update cancelled');
+            } else if (run.conclusion === 'failure') {
+              throw new Error('Update failed');
+            }
+          }
 
-          // Compute percent: base 20..95 depending on progress
-          const percent = runStatus === 'queued' ? 15 : runStatus === 'in_progress' ? Math.min(20 + Math.round((completed / totalSteps) * 70), 95) : runStatus === 'completed' ? 100 : 50;
-
-          const message = runStatus === 'queued' ? 'Waiting for workflow to start...' : 
-                         runStatus === 'in_progress' ? 'Capturing dashboards...' : 
-                         runStatus === 'completed' ? 'Update complete!' : 'Processing...';
-          const statusText = runStatus === 'in_progress' ? `Capturing dashboard ${Math.min(currentIndex, totalSteps)} of ${totalSteps}` : 
-                         (runStatus === 'queued' ? 'Preparing environment...' : 
-                         (runStatus === 'completed' ? 'Refreshing page...' : ''));
-
-          updateProgress(percent, message, statusText);
-
-          // Verify all required steps are actually complete
-          const allStepsComplete = dashSteps.length >= totalSteps && 
-                                 completed >= totalSteps && 
-                                 !dashSteps.some(s => s.status === 'in_progress' || !s.conclusion);
+          // Get total dashboard count based on project
+          const dashboardCount = fullProjectName === 'VM 14.0' ? 7 : 
+                               fullProjectName === 'VM 13.0' ? 5 : 
+                               fullProjectName === 'Blaze 1.0' ? 4 : 0;
           
-          // Only complete when every job and step is done
-          if (runStatus === 'completed' && allStepsComplete) {
-            console.log('Workflow status:', {
-              totalExpectedSteps: totalSteps,
-              foundSteps: dashSteps.length,
-              completedSteps: completed,
-              stepStatus: dashSteps.map(s => `${s.name}: ${s.status} (${s.conclusion || 'running'})`)
-            });
-            
-            // Show success state
-            updateProgress(100, '✓ Update Complete', 'Refreshing page...', '#4CAF50');
-            
-            // Clean up
+          // Calculate progress based on workflow steps
+          const progress = (() => {
+            switch(status) {
+              case 'queued': return 10;
+              case 'in_progress': {
+                // Get steps from workflow
+                const stepsCompleted = Math.min(i + 1, dashboardCount); // Use polling iteration as a progress indicator
+                return Math.min(20 + (stepsCompleted / dashboardCount * 60), 80);
+              }
+              case 'completed': return run.conclusion === 'success' ? 100 : 0;
+              default: return 30;
+            }
+          })();
+          
+          // Update the UI with current progress
+          updateProgress(
+            progress,
+            status === 'in_progress' ? 'Updating dashboards...' : 
+            status === 'queued' ? 'Waiting for workflow to start...' : 
+            status === 'completed' && run.conclusion === 'success' ? 'Update complete!' : 'Processing...',
+            status === 'in_progress' ? `Processing dashboard ${Math.min(i + 1, dashboardCount)}/${dashboardCount}` :
+            status === 'queued' ? 'In queue' :
+            status === 'completed' && run.conclusion === 'success' ? 'Refreshing page...' : ''
+          );
+
+          if (status === 'completed' && run.conclusion === 'success') {
             localStorage.removeItem(workflowKey);
-            localStorage.removeItem(progressKey);
-            
-            // Re-enable refresh buttons
-            document.querySelectorAll('.dropdown-item.refresh-button').forEach(btn => {
-              btn.style.opacity = '';
-              btn.style.cursor = '';
-              btn.onclick = null;
-            });
-            
-            // Hide status box with animation
-            setTimeout(() => {
-              statusBox.classList.remove('active');
-            }, 2000);
-            
-            // Reload page after status box animation
-            setTimeout(() => window.location.reload(), 2300);
+            setTimeout(() => window.location.reload(), 1000);
             return;
           }
 
-          if (runStatus === 'failed' || jobs.some(j => j.conclusion === 'failure')) {
-            throw new Error('Update failed');
-          }
-
-        } catch (err) {
-          console.error('Polling error:', err);
-          // continue polling a few more times, but show a message
-          updateProgress(50, 'Checking status...', 'Encountered a temporary error');
+        } catch (error) {
+          console.error('Error checking workflow status:', error);
+          throw new Error('Failed to check workflow status');
         }
       }
-
-      // Timeout after max attempts
-      const timeoutMessage = `Update timed out after ${Math.floor((Date.now() - startTime) / 60000)} minutes`;
-      updateProgress(100, '⚠️ Update Timed Out', timeoutMessage, '#f0ad4e');
+      // If we get here, we've timed out
+      updateProgress(100, '⚠️ Update Timed Out', 'Please try again');
+      progressBar.style.background = '#f0ad4e';
       localStorage.removeItem(workflowKey);
-      localStorage.removeItem('current_progress_state');
-      
-      // Clean up UI
-      document.querySelectorAll('.nav-item a[data-route] .btn-spinner').forEach(s => s.remove());
-      document.querySelectorAll('.nav-item a[data-route]').forEach(btn => btn.classList.remove('refreshing'));
-      
-      // Show error in status box
-      statusBox.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <div style="color: #f0ad4e">⚠️ Update Timed Out</div>
-          <div style="font-size: 0.9em; opacity: 0.8">${timeoutMessage}</div>
-        </div>
-      `;
-      
       throw new Error('Update timed out');
 
     } catch (error) {
       console.error('Error:', error);
+      const errorType = error.message.includes('cancelled') ? 'cancelled' :
+                       error.message.includes('failed') ? 'failed' :
+                       'error';
+      
+      // Clear the workflow storage
       localStorage.removeItem(workflowKey);
-      localStorage.removeItem('current_progress_state');
       
-      // Clean up UI
-      document.querySelectorAll('.nav-item a[data-route] .btn-spinner').forEach(s => s.remove());
-      document.querySelectorAll('.nav-item a[data-route]').forEach(btn => btn.classList.remove('refreshing'));
+      // Update UI based on error type
+      messageEl.textContent = errorType === 'cancelled' 
+        ? '⚠️ Update Cancelled' 
+        : '⚠️ Update Failed';
+      statusEl.style.textAlign = 'center';
+      statusEl.innerHTML = 'Please contact support<br><span style="display: block">(Click anywhere to cancel)</span>';
+      progressBar.style.width = '100%';
+      progressBar.style.background = errorType === 'cancelled' 
+        ? '#f0ad4e' 
+        : '#ff6b6b';
       
-      const msg = (error.message || '').toLowerCase();
-      const isCancelled = msg.includes('cancel');
-      const errorColor = isCancelled ? '#f0ad4e' : '#ff6b6b';
-      const errorMessage = isCancelled ? '⚠️ Update Cancelled' : '⚠️ Update Failed';
-      const errorDetails = isCancelled ? 'Operation was cancelled' : 'Please contact support';
-      
-      updateProgress(100, errorMessage, errorDetails, errorColor);
-      
-      // Update status box with error
-      statusBox.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <div style="color: ${errorColor}">${errorMessage}</div>
-          <div style="font-size: 0.9em; opacity: 0.8">${errorDetails}</div>
-        </div>
-      `;
-      
-      // Make overlay dismissible
-      overlay.style.cursor = 'pointer';
-      overlay.title = 'Click to dismiss';
+      // Make overlay clickable to dismiss
       overlay.onclick = () => {
         overlay.classList.remove('active');
-        statusBox.classList.remove('active');
-        setTimeout(() => statusBox.remove(), 300);
-        progressBar.style.background = 'var(--philips)';
+        progressBar.style.background = 'var(--philips)'; // Reset progress bar color
       };
     }
   }
 
-  // Handle page visibility changes
-  let visibilityTimeout;
+  // Add page visibility handling
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      // Clear any pending timeout
-      if (visibilityTimeout) {
-        clearTimeout(visibilityTimeout);
-        visibilityTimeout = null;
-      }
-
-      const workflowData = localStorage.getItem('current_workflow_update');
-      const progressData = localStorage.getItem('current_progress_state');
-      
-      if (workflowData && progressData) {
-        try {
-          const { project } = JSON.parse(workflowData);
-          const { percent, message, status } = JSON.parse(progressData);
-          
-          // Restore last known state immediately
-          const overlay = document.getElementById('refresh-overlay');
-          const progressBar = overlay.querySelector('.progress-bar');
-          const messageEl = overlay.querySelector('.message');
-          const statusEl = overlay.querySelector('.status');
-          
-          overlay.classList.add('active');
-          progressBar.style.width = `${percent}%`;
-          messageEl.textContent = message || 'Resuming update...';
-          statusEl.textContent = status || 'Reconnecting...';
-          
-          // Resume polling after a short delay
-          setTimeout(() => refreshDashboards(project), 1000);
-        } catch (e) {
-          console.error('Error resuming workflow:', e);
-          localStorage.removeItem('current_workflow_update');
-          localStorage.removeItem('current_progress_state');
+      // Check if there's an ongoing refresh
+      const refreshStartTime = localStorage.getItem('refresh_start_time');
+      if (refreshStartTime) {
+        const elapsedTime = Date.now() - parseInt(refreshStartTime);
+        
+        // If more than 10 minutes have passed since refresh started
+        if (elapsedTime >= AUTO_REFRESH_DELAY) {
+          window.location.reload();
+        } else if (elapsedTime < AUTO_REFRESH_DELAY) {
+          // If less than 10 minutes, set a new timer for the remaining time
+          if (refreshTimer) {
+            clearTimeout(refreshTimer);
+          }
+          refreshTimer = setTimeout(() => {
+            window.location.reload();
+          }, AUTO_REFRESH_DELAY - elapsedTime);
         }
       }
-    } else {
-      // Tab hidden - set a timeout to clear progress if we stay hidden too long
-      visibilityTimeout = setTimeout(() => {
-        localStorage.removeItem('current_workflow_update');
-        localStorage.removeItem('current_progress_state');
-      }, 30 * 60 * 1000); // 30 minutes
+
+      // Resume workflow check if needed
+      const workflowData = localStorage.getItem('current_workflow_update');
+      if (workflowData) {
+        const { project } = JSON.parse(workflowData);
+        refreshDashboards(project);
+      }
+    }
+  });
+
+  // Add cleanup on page unload
+  window.addEventListener('unload', () => {
+    if (refreshTimer) {
+      clearTimeout(refreshTimer);
     }
   });
 </script>

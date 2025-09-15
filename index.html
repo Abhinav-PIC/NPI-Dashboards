@@ -73,20 +73,25 @@
 
     /* Refresh Overlay */
     .refresh-overlay {
-      position: fixed;
-      inset: 0;
+      position: absolute;
+      inset: 56px 0 0 0; /* Start below the top bar */
       background: rgba(0,0,0,0.85);
       display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       color: white;
-      z-index: 9999;
+      z-index: 100;
       padding: 20px;
     }
 
     .refresh-overlay.active {
       display: flex;
+    }
+
+    /* Hide overlay when project is not active */
+    .project.inactive .refresh-overlay {
+      display: none;
     }
 
     .refresh-overlay .spinner {
@@ -267,16 +272,6 @@
   </style>
 </head>
 <body>
-  <!-- Refresh Overlay -->
-  <div id="refresh-overlay" class="refresh-overlay">
-    <div class="spinner"></div>
-    <div class="message">Capturing latest dashboard data</div>
-    <div class="progress-container">
-      <div class="progress-bar"></div>
-    </div>
-    <div class="status"></div>
-  </div>
-
   <!-- SPLASH -->
   <div id="splash" class="splash">
     <div class="splash-fit">
@@ -363,6 +358,14 @@
 
     <!-- VM13 -->
     <div id="view-vm13" class="project inactive">
+      <div class="refresh-overlay" data-project="VM 13.0">
+        <div class="spinner"></div>
+        <div class="message">Capturing latest dashboard data</div>
+        <div class="progress-container">
+          <div class="progress-bar"></div>
+        </div>
+        <div class="status"></div>
+      </div>
       <div class="slides">
         <div class="slide active"><img src="snapshots/2025-09/VM 13.0/Dashboard-1.png" alt="VM13 Dashboard 1" loading="eager"></div>
         <div class="slide"><img src="snapshots/2025-09/VM 13.0/Dashboard-2.png" alt="VM13 Dashboard 2"></div>
@@ -375,6 +378,14 @@
 
     <!-- Blaze -->
     <div id="view-blaze" class="project inactive">
+      <div class="refresh-overlay" data-project="Blaze 1.0">
+        <div class="spinner"></div>
+        <div class="message">Capturing latest dashboard data</div>
+        <div class="progress-container">
+          <div class="progress-bar"></div>
+        </div>
+        <div class="status"></div>
+      </div>
       <div class="slides">
         <div class="slide active"><img src="snapshots/2025-09/Blaze 1.0/Dashboard-1.png" alt="Blaze Dashboard 1" loading="eager"></div>
         <div class="slide"><img src="snapshots/2025-09/Blaze 1.0/Dashboard-2.png" alt="Blaze Dashboard 2"></div>
@@ -386,6 +397,14 @@
 
     <!-- VM14 -->
     <div id="view-vm14" class="project inactive">
+      <div class="refresh-overlay" data-project="VM 14.0">
+        <div class="spinner"></div>
+        <div class="message">Capturing latest dashboard data</div>
+        <div class="progress-container">
+          <div class="progress-bar"></div>
+        </div>
+        <div class="status"></div>
+      </div>
       <div class="slides">
         <div class="slide active"><img src="snapshots/2025-09/VM 14.0/Dashboard-1.png" alt="VM14 Dashboard 1" loading="eager"></div>
         <div class="slide"><img src="snapshots/2025-09/VM 14.0/Dashboard-2.png" alt="VM14 Dashboard 2"></div>
@@ -537,38 +556,49 @@
   }
 
   async function refreshDashboards(project) {
-    const overlay = document.getElementById('refresh-overlay');
-    const messageEl = overlay.querySelector('.message');
-    const progressBar = overlay.querySelector('.progress-bar');
-    const statusEl = overlay.querySelector('.status');
-    overlay.classList.add('active');
-    overlay.onclick = null;
-
-    // Check for existing workflow
-    const workflowKey = 'current_workflow_update';
-    const existingWorkflow = localStorage.getItem(workflowKey);
-    
-    if (existingWorkflow) {
-      const workflowData = JSON.parse(existingWorkflow);
-      const isRecent = Date.now() - workflowData.timestamp < 180000; // 3 minutes
-      
-      if (isRecent) {
-        // Resume existing workflow
-        messageEl.textContent = 'Resuming update...';
-        statusEl.textContent = `Continuing update for ${workflowData.project}`;
-        progressBar.style.width = '30%';
-      } else {
-        localStorage.removeItem(workflowKey);
-      }
-    }
-
-    const updateProgress = (percent, message, status) => {
-      progressBar.style.width = `${percent}%`;
-      if (message) messageEl.textContent = message;
-      if (status) statusEl.textContent = status;
-    };
-
     try {
+      // Find the project's view element and its overlay
+      const projectId = project.toLowerCase().replace(/\s+/g, '').replace('.', '');
+      const projectView = document.getElementById(`view-${projectId}`);
+      if (!projectView) throw new Error('Project view not found');
+      
+      const overlay = projectView.querySelector('.refresh-overlay');
+      const messageEl = overlay.querySelector('.message');
+      const progressBar = overlay.querySelector('.progress-bar');
+      const statusEl = overlay.querySelector('.status');
+      
+      // Reset and show overlay
+      progressBar.style.width = '0%';
+      progressBar.style.background = 'var(--philips)';
+      overlay.classList.add('active');
+      overlay.onclick = null;
+
+      // Check for existing workflow
+      const workflowKey = `workflow_${projectId}`;
+      const existingWorkflow = localStorage.getItem(workflowKey);
+      
+      if (existingWorkflow) {
+        const workflowData = JSON.parse(existingWorkflow);
+        const isRecent = Date.now() - workflowData.timestamp < 180000; // 3 minutes
+        
+        if (isRecent) {
+          // Resume existing workflow
+          messageEl.textContent = 'Resuming update...';
+          statusEl.textContent = `Continuing update for ${workflowData.project}`;
+          progressBar.style.width = '30%';
+        } else {
+          localStorage.removeItem(workflowKey);
+        }
+      }
+
+      const updateProgress = (percent, message, status) => {
+        requestAnimationFrame(() => {
+          progressBar.style.width = `${percent}%`;
+          if (message) messageEl.textContent = message;
+          if (status) statusEl.textContent = status;
+        });
+      };
+
       // Check if token exists
       if (!WORKFLOW_PAT_NEW || WORKFLOW_PAT_NEW === '${{ secrets.WORKFLOW_PAT_NEW }}') {
         throw new Error('GitHub token not properly configured');

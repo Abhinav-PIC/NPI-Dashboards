@@ -21,6 +21,17 @@
 
     html,body{margin:0;height:100%;overflow:hidden;background:#fff;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;}
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('GitHub API Error Details:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        throw new Error(`GitHub API Error: ${response.status} - ${errorText}`);
+      }
+      console.log('Workflow trigger response:', response.status);mily:"Segoe UI","Helvetica Neue",Arial,sans-serif;}
+
     /* Veil */
     .veil{position:fixed;inset:0;background:#fff;opacity:1;transition:opacity .6s ease;pointer-events:none;z-index:9998;}
     .veil.hidden{opacity:0}
@@ -676,6 +687,9 @@
       // Initialize workflow
       updateProgress(10, 'Initializing workflow...', updateState.totalTime);
       
+      // Initialize workflow
+      updateProgress(10, 'Initializing workflow...', updateState.totalTime);
+      
       const response = await fetch('https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards/dispatches', {
         method: 'POST',
         headers: {
@@ -685,13 +699,20 @@
           'X-GitHub-Api-Version': '2022-11-28'
         },
         body: JSON.stringify({
-          event_type: 'update-dashboards',  // Matches the workflow file name
-          client_payload: { 
-            project: fullProjectName,
-            timestamp: Date.now()
-          }
+          event_type: 'repository_dispatch',
+          client_payload: { project: fullProjectName }
         })
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('GitHub API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        throw new Error(`GitHub API Error: ${response.status} - ${errorText || response.statusText}`);
+      }
 
       if (!response.ok) {
         const errorText = await response.text();

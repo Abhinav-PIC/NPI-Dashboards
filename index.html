@@ -74,94 +74,48 @@
     /* Refresh Status Box */
     .refresh-status {
       position: fixed;
-      top: 80px;
+      top: 70px;
       right: 20px;
-      width: 320px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-      color: var(--bar);
+      width: 200px;
+      background: var(--bar);
+      border-radius: 8px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+      color: white;
       z-index: 9999;
-      padding: 20px;
+      padding: 12px;
       display: none;
-      font-size: 14px;
+      font-size: 13px;
+      transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+      animation: float 3s ease-in-out infinite;
+      backdrop-filter: blur(8px);
     }
 
     .refresh-status.active {
       display: block;
-      animation: slideIn 0.3s ease-out;
+      animation: slideIn 0.3s ease-out, float 3s ease-in-out infinite;
     }
 
     @keyframes slideIn {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
     }
 
-    .status-header {
-      font-size: 16px;
-      font-weight: 700;
-      margin-bottom: 15px;
-      color: var(--bar);
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+      100% { transform: translateY(0px); }
     }
 
     .status-message {
-      margin-bottom: 10px;
-      color: var(--bar);
+      margin-bottom: 8px;
       font-weight: 500;
     }
 
     .time-remaining {
-      color: var(--philips);
+      color: rgba(255,255,255,0.9);
       font-weight: 600;
-      margin-bottom: 15px;
-    }
-
-    .update-steps {
-      margin-bottom: 15px;
-    }
-
-    .step {
-      padding: 8px 0;
-      color: #666;
-      position: relative;
-      padding-left: 24px;
-    }
-
-    .step::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      border: 2px solid #ddd;
-    }
-
-    .step.active {
-      color: var(--bar);
-      font-weight: 500;
-    }
-
-    .step.active::before {
-      border-color: var(--philips);
-      background: var(--philips);
-    }
-
-    .step.completed::before {
-      border-color: #4CAF50;
-      background: #4CAF50;
-    }
-
-    .step.completed::after {
-      content: "✓";
-      position: absolute;
-      left: 4px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: white;
-      font-size: 11px;
+      margin-bottom: 8px;
+      font-size: 12px;
     }
 
     /* Toast notification */
@@ -348,20 +302,11 @@
 <body>
   <!-- Refresh Status Box -->
   <div id="refresh-status" class="refresh-status">
-    <div class="status-header">Dashboard Update Status</div>
     <div class="status-message">Initializing update...</div>
-    <div class="time-remaining">Estimated time: <span>10</span> minutes remaining</div>
-    <div class="update-steps">
-      <div class="step" data-step="init">Initializing workflow</div>
-      <div class="step" data-step="capture">Capturing latest data</div>
-      <div class="step" data-step="process">Processing dashboards</div>
-      <div class="step" data-step="save">Saving changes</div>
-      <div class="step" data-step="commit">Committing updates</div>
-    </div>
+    <div class="time-remaining"><span>10</span> min remaining</div>
     <div class="progress-container">
       <div class="progress-bar"></div>
     </div>
-    <div class="status-footer">Update in progress...</div>
   </div>
 
   <!-- SPLASH -->
@@ -665,34 +610,45 @@
       }
     }
 
-    const updateProgress = (percent, step, message, timeLeft) => {
+    // Update messages for different stages of the process
+    const updateMessages = [
+      "Initializing workflow...",
+      "Connecting to GitHub...",
+      "Capturing latest data...",
+      "Processing dashboard information...",
+      "Updating visuals...",
+      "Saving changes...",
+      "Almost done..."
+    ];
+
+    const updateProgress = (percent, message, timeLeft) => {
       // Update progress bar
       progressBar.style.width = `${percent}%`;
       
-      // Update step indicators
-      steps.forEach((s, i) => {
-        if (i < step) {
-          s.classList.add('completed');
-          s.classList.remove('active');
-        } else if (i === step) {
-          s.classList.add('active');
-          s.classList.remove('completed');
-        } else {
-          s.classList.remove('active', 'completed');
-        }
-      });
-
-      // Update message and time
+      // Update message
       if (message) messageEl.textContent = message;
+      
+      // Update time
       if (typeof timeLeft === 'number') {
-        timeRemaining.textContent = Math.max(0, Math.ceil(timeLeft / 60000));
+        const minutes = Math.floor(timeLeft / 60000);
+        if (timeLeft <= 60000) { // Last minute
+          const seconds = Math.floor((timeLeft % 60000) / 1000);
+          timeRemaining.textContent = `${seconds} sec remaining`;
+        } else {
+          timeRemaining.textContent = `${minutes} min remaining`;
+        }
       }
     };
 
+    // Store the start time in localStorage to handle tab switches
+    localStorage.setItem('refresh_start_time', updateState.startTime.toString());
+
     // Start time update interval
     updateState.timer = setInterval(() => {
-      const elapsed = Date.now() - updateState.startTime;
+      const storedStartTime = parseInt(localStorage.getItem('refresh_start_time'));
+      const elapsed = Date.now() - storedStartTime;
       const timeLeft = updateState.totalTime - elapsed;
+      const progress = Math.min(95, (elapsed / updateState.totalTime) * 100);
       
       if (timeLeft <= 0 && !updateState.isCompleted) {
         clearInterval(updateState.timer);
@@ -700,14 +656,9 @@
         return;
       }
 
-      // Show minutes and seconds when less than 2 minutes remain
-      if (timeLeft <= 120000) {
-        const minutes = Math.floor(timeLeft / 60000);
-        const seconds = Math.floor((timeLeft % 60000) / 1000);
-        timeRemaining.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-      } else {
-        timeRemaining.textContent = Math.max(0, Math.ceil(timeLeft / 60000));
-      }
+      // Update message based on progress
+      const messageIndex = Math.floor((updateMessages.length - 1) * (progress / 100));
+      updateProgress(progress, updateMessages[messageIndex], timeLeft);
     }, 1000);
 
     try {
@@ -723,7 +674,7 @@
       }
 
       // Initialize workflow
-      updateProgress(10, 'Initializing workflow...', 'Starting update process');
+      updateProgress(10, 'Initializing workflow...', updateState.totalTime);
       
       const response = await fetch('https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards/dispatches', {
         method: 'POST',
@@ -734,8 +685,11 @@
           'X-GitHub-Api-Version': '2022-11-28'
         },
         body: JSON.stringify({
-          event_type: 'repository_dispatch',
-          client_payload: { project: fullProjectName }
+          event_type: 'update-dashboards',  // Matches the workflow file name
+          client_payload: { 
+            project: fullProjectName,
+            timestamp: Date.now()
+          }
         })
       });
 

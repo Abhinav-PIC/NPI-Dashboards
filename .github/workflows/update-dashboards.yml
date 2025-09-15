@@ -36,9 +36,9 @@ jobs:
       - name: Install Dependencies
         run: |
           if [ -e package-lock.json ]; then
-            npm ci --production
+            npm ci --omit=dev
           else
-            npm install --production
+            npm install --omit=dev
           fi
 
       - name: Capture Screenshots

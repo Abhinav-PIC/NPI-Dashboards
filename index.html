@@ -357,9 +357,28 @@
       z-index:1;
     }
     .controls{position:absolute;left:0;right:0;bottom:18px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;z-index:30}
-    .controls .btn{padding:10px 16px;font-size:14px;background:var(--btn)}
-    .controls .btn:hover{background:var(--btnH)}
-    .controls .btn[disabled]{background:var(--btnDis);cursor:not-allowed;opacity:.65}
+    .controls .btn{
+      padding:10px 16px;
+      font-size:14px;
+      background:var(--btn);
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      border-radius: 12px;
+      transition: background-color 0.2s ease;
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .controls .btn:hover{
+      background:var(--btnH);
+      opacity: 1;
+    }
+    .controls .btn[disabled]{
+      background:var(--btnDis);
+      cursor:not-allowed;
+      opacity:.65;
+      pointer-events: none;
+    }
     .counter{color:#fff;background:rgba(0,0,0,.35);padding:6px 10px;border-radius:8px;font-weight:700}
   </style>
 </head>
@@ -656,14 +675,27 @@
       clearTimeout(refreshTimer);
     }
 
-    // Set up auto-refresh timer
-    refreshTimer = setTimeout(() => {
-      statusText.textContent = 'Refreshing page...';
-      // Add a small delay before refresh to show the message
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    }, AUTO_REFRESH_DELAY);
+    // Set up auto-refresh timer and countdown
+    const startTime = Date.now();
+    const updateCountdown = () => {
+      const elapsed = Date.now() - startTime;
+      const remaining = AUTO_REFRESH_DELAY - elapsed;
+      
+      if (remaining <= 0) {
+        statusText.textContent = 'Refreshing page...';
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+        return;
+      }
+
+      const minutes = Math.floor(remaining / 60000);
+      const seconds = Math.floor((remaining % 60000) / 1000);
+      statusText.textContent = `Auto-refresh in ${minutes}:${seconds.toString().padStart(2, '0')}`;
+      refreshTimer = setTimeout(updateCountdown, 1000);
+    };
+    
+    updateCountdown();
 
     // Store refresh start time in localStorage
     localStorage.setItem('refresh_start_time', Date.now().toString());
@@ -875,13 +907,33 @@
         if (elapsedTime >= AUTO_REFRESH_DELAY) {
           window.location.reload();
         } else if (elapsedTime < AUTO_REFRESH_DELAY) {
-          // If less than 10 minutes, set a new timer for the remaining time
+          // If less than 10 minutes, resume countdown
           if (refreshTimer) {
             clearTimeout(refreshTimer);
           }
-          refreshTimer = setTimeout(() => {
-            window.location.reload();
-          }, AUTO_REFRESH_DELAY - elapsedTime);
+          
+          // Update countdown display
+          const statusPanel = document.getElementById('refresh-status');
+          const statusText = statusPanel.querySelector('.status-text');
+          
+          const updateCountdown = () => {
+            const remaining = AUTO_REFRESH_DELAY - (Date.now() - parseInt(refreshStartTime));
+            
+            if (remaining <= 0) {
+              statusText.textContent = 'Refreshing page...';
+              setTimeout(() => {
+                window.location.reload();
+              }, 1500);
+              return;
+            }
+
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+            statusText.textContent = `Auto-refresh in ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            refreshTimer = setTimeout(updateCountdown, 1000);
+          };
+          
+          updateCountdown();
         }
       }
 

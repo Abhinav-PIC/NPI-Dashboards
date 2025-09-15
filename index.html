@@ -717,11 +717,15 @@
       localStorage.removeItem(workflowKey);
       
       // Update UI based on error type
-      messageEl.textContent = errorType === 'cancelled' ? '⚠️ Update Cancelled' : 
-                             '⚠️ Update Failed';
-      statusEl.textContent = 'Please contact support';
+      messageEl.textContent = errorType === 'cancelled' 
+        ? '⚠️ Update Cancelled' 
+        : '⚠️ Update Failed';
+      statusEl.style.textAlign = 'center';
+      statusEl.innerHTML = 'Please contact support<br><span style="display: block">(Click anywhere to cancel)</span>';
       progressBar.style.width = '100%';
-      progressBar.style.background = errorType === 'cancelled' ? '#f0ad4e' : '#ff6b6b';
+      progressBar.style.background = errorType === 'cancelled' 
+        ? '#f0ad4e' 
+        : '#ff6b6b';
       
       // Make overlay clickable to dismiss
       overlay.onclick = () => {

@@ -643,10 +643,10 @@
       }
 
       // Main poll loop: use job steps to compute accurate progress and messages
-      for (let i = 0; i < 120; i++) {
+      for (let i = 0; i < 180; i++) {  // Increased timeout to 12 minutes
         await new Promise(r => setTimeout(r, 4000));
         try {
-          console.log('Fetching jobs for run:', runId);
+          console.log('Polling workflow run:', runId);
           const runJobs = await fetchRunJobs(runId);
           const jobs = runJobs.jobs || [];
           console.log('Found jobs:', jobs.length);
@@ -665,8 +665,11 @@
           const inProgress = dashSteps.findIndex(s => s.status === 'in_progress');
           const currentIndex = inProgress >= 0 ? inProgress + 1 : (completed < totalSteps ? completed + 1 : totalSteps);
 
-          // Find overall run status from job array
-          const runStatus = jobs.some(j => j.status === 'in_progress') ? 'in_progress' : (jobs.every(j => j.conclusion === 'success') ? 'completed' : (jobs.some(j => j.conclusion === 'failure') ? 'failed' : 'queued'));
+          // Find overall run status from job array and ensure we have actual progress
+          const runStatus = jobs.length === 0 ? 'queued' :
+                          jobs.some(j => j.status === 'in_progress') ? 'in_progress' :
+                          (jobs.every(j => j.conclusion === 'success') && completed >= totalSteps) ? 'completed' :
+                          jobs.some(j => j.conclusion === 'failure') ? 'failed' : 'in_progress';
 
           // Compute percent: base 20..95 depending on progress
           const percent = runStatus === 'queued' ? 15 : runStatus === 'in_progress' ? Math.min(20 + Math.round((completed / totalSteps) * 70), 95) : runStatus === 'completed' ? 100 : 50;
@@ -676,9 +679,12 @@
 
           updateProgress(percent, message, statusText);
 
-          if (runStatus === 'completed' && jobs.every(j => j.conclusion === 'success')) {
+          // Only complete when we have actually finished all steps
+          if (runStatus === 'completed' && completed >= totalSteps) {
+            console.log('All dashboard steps completed:', completed, 'of', totalSteps);
             localStorage.removeItem(workflowKey);
-            setTimeout(() => window.location.reload(), 900);
+            // Wait longer to ensure everything is done
+            setTimeout(() => window.location.reload(), 3000);
             return;
           }
 

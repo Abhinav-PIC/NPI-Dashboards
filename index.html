@@ -74,24 +74,23 @@
     /* Refresh Overlay */
     .refresh-overlay {
       position: absolute;
-      inset: 56px 0 0 0; /* Start below the top bar */
+      inset: 0;
       background: rgba(0,0,0,0.85);
       display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       color: white;
-      z-index: 100;
       padding: 20px;
+      z-index: 2;
     }
 
     .refresh-overlay.active {
       display: flex;
     }
 
-    /* Hide overlay when project is not active */
-    .project.inactive .refresh-overlay {
-      display: none;
+    .project.inactive .refresh-overlay.active {
+      display: flex; /* Keep showing overlay even when project tab is inactive */
     }
 
     .refresh-overlay .spinner {
@@ -155,74 +154,38 @@
       transition:opacity 1s ease
     }
 
-    /* Dropdown Menu */
+    /* Navigation Controls */
     .nav-item {
-      position: relative;
       display: inline-block;
     }
 
-    .dropdown {
-      display: none;
-      position: absolute;
-      top: 100%;
-      left: 0;
-      background: var(--bar);
-      border-radius: 8px;
-      padding: 8px;
-      min-width: 220px;
-      box-shadow: 0 4px 12px rgba(0,0,0,.2);
-      z-index: 1000;
-      margin-top: 2px;
-    }
-
-    /* Add padding to create hoverable area between button and dropdown */
-    .nav-item::after {
-      content: '';
-      position: absolute;
-      height: 10px;
-      left: 0;
-      right: 0;
-      bottom: -10px;
-    }
-
-    /* Show dropdown on hover and keep it visible while hovering the gap */
-    .nav-item:hover .dropdown,
-    .nav-item .dropdown.active {
-      display: block;
-      animation: fadeIn 0.1s ease-out;
-    }
-
-    .dropdown-item {
+    .nav-controls {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 12px 16px;
-      color: white;
-      text-decoration: none;
-      border-radius: 6px;
-      transition: background .15s ease-in-out;
-      font-weight: 500;
-      white-space: nowrap;
     }
 
-    .dropdown-item:hover {
+    .refresh-btn {
+      padding: 8px !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .refresh-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    .refresh-btn:hover {
       background: var(--btnH);
     }
 
-    .dropdown-item svg {
-      width: 18px;
-      height: 18px;
-      fill: currentColor;
-      flex-shrink: 0;
-    }
-
-    .dropdown-item.refresh-button {
-      color: var(--warning);
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-4px); }
-      to { opacity: 1; transform: translateY(0); }
+    .project.refreshing .refresh-btn {
+      animation: spin 1s linear infinite;
+      background: var(--warning);
+      pointer-events: none;
     }
     .btn{display:inline-block;border:0;border-radius:12px;padding:8px 14px;font-weight:700;color:#fff;background:#104071;text-decoration:none}
     .btn{transition:transform .12s ease, box-shadow .12s ease, background-color .12s ease}
@@ -300,44 +263,29 @@
     <a class="btn" href="#home" data-route="home">Home</a>
     
     <div class="nav-item">
-      <a class="btn" href="#vm13" data-route="vm13">VM 13.0</a>
-      <div class="dropdown">
-  <a class="dropdown-item refresh-button" href="javascript:void(0)" onclick="event.preventDefault(); refreshDashboards('VM 13.0')">
+      <div class="nav-controls">
+        <a class="btn" href="#vm13" data-route="vm13">VM 13.0</a>
+        <button class="btn refresh-btn" onclick="refreshDashboards('VM 13.0')" title="Refresh VM 13.0 Dashboards">
           <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-          Refresh Dashboards
-        </a>
-        <a class="dropdown-item edit-button" href="https://app.smartsheet.eu/workspaces/W7JvM9F6XMVhxv7ffw4rVJfg4CM7xgfxjPC5JHf1" target="_blank">
-          <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-          Edit Data
-        </a>
+        </button>
       </div>
     </div>
 
     <div class="nav-item">
-      <a class="btn" href="#blaze" data-route="blaze">Blaze 1.0</a>
-      <div class="dropdown">
-  <a class="dropdown-item refresh-button" href="javascript:void(0)" onclick="event.preventDefault(); refreshDashboards('Blaze 1.0')">
+      <div class="nav-controls">
+        <a class="btn" href="#blaze" data-route="blaze">Blaze 1.0</a>
+        <button class="btn refresh-btn" onclick="refreshDashboards('Blaze 1.0')" title="Refresh Blaze 1.0 Dashboards">
           <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-          Refresh Dashboards
-        </a>
-        <a class="dropdown-item edit-button" href="https://app.smartsheet.eu/workspaces/MP68x2GxfFg79xcqvJhFw5hjhGQQ9j7G5G3QXQh1" target="_blank">
-          <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-          Edit Data
-        </a>
+        </button>
       </div>
     </div>
 
     <div class="nav-item">
-      <a class="btn" href="#vm14" data-route="vm14">VM 14.0</a>
-      <div class="dropdown">
-  <a class="dropdown-item refresh-button" href="javascript:void(0)" onclick="event.preventDefault(); refreshDashboards('VM 14.0')">
+      <div class="nav-controls">
+        <a class="btn" href="#vm14" data-route="vm14">VM 14.0</a>
+        <button class="btn refresh-btn" onclick="refreshDashboards('VM 14.0')" title="Refresh VM 14.0 Dashboards">
           <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-          Refresh Dashboards
-        </a>
-        <a class="dropdown-item edit-button" href="https://app.smartsheet.eu/workspaces/gM9wv3Rqwphqjj6hj4gHrGfPmrJWMFhhfCf7X6G1" target="_blank">
-          <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-          Edit Data
-        </a>
+        </button>
       </div>
     </div>
     

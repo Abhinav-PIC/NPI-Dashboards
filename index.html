@@ -17,6 +17,7 @@
       --btnH:#0059b3;
       --btnDis:#7a94b8;
       --warning:#ffcc00;
+      --error:#ff6b6b;
     }
 
     html,body{margin:0;height:100%;overflow:hidden;background:#fff;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;}
@@ -121,7 +122,15 @@
       width: 0%;
       height: 100%;
       background: var(--philips);
-      transition: width 0.5s ease;
+      transition: width 0.5s ease, background-color 0.3s ease;
+    }
+
+    .refresh-overlay .progress-bar.warning {
+      background: var(--warning);
+    }
+
+    .refresh-overlay .progress-bar.error {
+      background: var(--error);
     }
 
     .refresh-overlay .status {
@@ -414,6 +423,8 @@
   // Constants  
   const WORKFLOW_PAT_NEW = '${{ secrets.WORKFLOW_PAT_NEW }}';  // Will be replaced during build
   const SPLASH_TIMEOUT = 3000;  // Maximum splash screen wait time
+  const REPO_API_BASE = 'https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards';
+  const __dashboardPollers = window.__dashboardPollers || (window.__dashboardPollers = {});
   
   const ROUTES = ['home', 'vm13', 'blaze', 'vm14'];
   const CONTAINERS = ROUTES.reduce((acc, route) => {
@@ -547,11 +558,6 @@
     updateNavSelection(project);
   }
 
-  // Improved refreshDashboards: use Actions Jobs API to compute progress, enforce monotonic progress,
-  // prevent concurrent pollers per project, and resume correctly.
-  const REPO_API_BASE = 'https://api.github.com/repos/Abhinav-PIC/NPI-Dashboards';
-  const __dashboardPollers = window.__dashboardPollers || (window.__dashboardPollers = {});
-
   async function refreshDashboards(project) {
     const overlay = document.getElementById('refresh-overlay');
     const messageEl = overlay.querySelector('.message');
@@ -559,6 +565,11 @@
     const statusEl = overlay.querySelector('.status');
     overlay.classList.add('active');
     overlay.onclick = null;
+    
+    // Reset any previous state
+    progressBar.className = 'progress-bar';
+    progressBar.style.width = '0%';
+    statusEl.style.textAlign = '';
 
     const storageKey = 'current_workflow_update';
     let stored = null;
@@ -571,14 +582,47 @@
       return;
     }
 
-    // Track monotonic progress
+    // Dashboard counts per project
+    const dashboardCounts = {
+      'VM 13.0': 5,
+      'Blaze 1.0': 4,
+      'VM 14.0': 7
+    };
+
+    // Track monotonic progress and workflow stages
     let lastProgress = 0;
-    const setProgress = (percent, message, status) => {
+    let currentDashboardIndex = 0;
+    const totalDashboards = dashboardCounts[fullProjectName] || 4;
+
+    const stages = {
+      INIT: { msg: 'Initializing workflow...', status: 'Preparing environment' },
+      SETUP: { msg: 'Setting up capture environment...', status: 'Installing dependencies' },
+      QUEUE: { msg: 'Waiting for workflow to start...', status: 'In queue...' },
+      CAPTURE_PREP: { msg: 'Preparing to capture dashboards...', status: 'Starting browser' },
+      CAPTURING: (current, total) => ({
+        msg: `Capturing dashboard ${current}/${total}...`,
+        status: `Processing screenshot ${current} of ${total}`
+      }),
+      PROCESSING: { msg: 'Processing captured images...', status: 'Optimizing images' },
+      FINALIZING: { msg: 'Finalizing updates...', status: 'Almost done' },
+      COMPLETE: { msg: 'Update complete!', status: 'Refreshing page...' }
+    };
+
+    const setProgress = (percent, stage, detail = null) => {
       const safe = Math.max(lastProgress, Math.min(100, Math.round(percent || 0)));
       lastProgress = safe;
       progressBar.style.width = `${safe}%`;
-      if (message) messageEl.textContent = message;
-      if (status) statusEl.textContent = status;
+      
+      if (stage) {
+        const stageInfo = typeof stages[stage] === 'function' 
+          ? stages[stage](detail?.current, detail?.total)
+          : stages[stage];
+        
+        if (stageInfo) {
+          messageEl.textContent = stageInfo.msg;
+          statusEl.textContent = stageInfo.status;
+        }
+      }
     };
 
     const apiFetch = (url, opts = {}) => fetch(url, Object.assign({}, opts, { headers: Object.assign({}, (opts.headers || {}), { 'Accept': 'application/vnd.github.v3+json', 'Authorization': `Bearer ${WORKFLOW_PAT_NEW}` }) }));
@@ -594,7 +638,7 @@
         setProgress(20, 'Resuming workflow...', `Resuming ${stored.project}`);
       } else {
         // Start a new repository_dispatch
-        setProgress(10, 'Initializing workflow...', 'Starting update process');
+        setProgress(10, 'Preparing environment...', 'Starting workflow');
         const dispatchResp = await fetch(`${REPO_API_BASE}/dispatches`, {
           method: 'POST',
           headers: { 'Accept': 'application/vnd.github.v3+json', 'Authorization': `Bearer ${WORKFLOW_PAT_NEW}`, 'Content-Type': 'application/json', 'X-GitHub-Api-Version': '2022-11-28' },
@@ -608,7 +652,7 @@
 
         stored = { project: fullProjectName, timestamp: Date.now(), runId: stored?.runId || null };
         localStorage.setItem(storageKey, JSON.stringify(stored));
-        setProgress(20, 'Workflow dispatched', 'Awaiting workflow run...');
+        setProgress(20, 'Setting up capture environment...', 'Installing dependencies...');
       }
 
       // mark poller active
@@ -632,10 +676,10 @@
               stored.runId = runId;
               stored.timestamp = Date.now();
               localStorage.setItem(storageKey, JSON.stringify(stored));
-              setProgress(30, 'Workflow started', 'Capturing latest data...');
+              setProgress(30, 'SETUP');
             } else {
               // still waiting for run to appear
-              setProgress(Math.min(lastProgress + 1, 35), 'Waiting for workflow to start...', 'In queue');
+              setProgress(Math.min(lastProgress + 1, 35), 'QUEUE');
               continue;
             }
           }
@@ -688,7 +732,20 @@
           const headroom = 65;
           let computed = totalSteps > 0 ? base + (completedSteps / totalSteps) * headroom : base;
           computed = Math.min(95, computed);
-          setProgress(computed, 'Updating dashboards...', `Processing ${completedSteps}/${totalSteps} steps`);
+          
+          // Map workflow progress to dashboard progress
+          const estimatedDashboards = Math.ceil((completedSteps / totalSteps) * totalDashboards);
+          if (estimatedDashboards === 0) {
+            setProgress(computed, 'CAPTURE_PREP');
+          } else if (estimatedDashboards < totalDashboards) {
+            // Update to show which dashboard we're capturing
+            if (estimatedDashboards > currentDashboardIndex) {
+              currentDashboardIndex = estimatedDashboards;
+            }
+            setProgress(computed, 'CAPTURING', { current: currentDashboardIndex, total: totalDashboards });
+          } else {
+            setProgress(computed, 'Processing captured images...', 'Almost done!');
+          }
 
           // continue polling until completed
         } catch (innerErr) {
@@ -711,11 +768,11 @@
       localStorage.removeItem(storageKey);
       if (__dashboardPollers[project]) __dashboardPollers[project].active = false;
 
-      messageEl.textContent = isCancelled ? '⚠️ Update Cancelled' : '⚠️ Update Failed';
+      messageEl.textContent = isCancelled ? '⚠️ Update Cancelled' : '⚠️ Dashboard Update Failed';
       statusEl.style.textAlign = 'center';
-      statusEl.innerHTML = 'Please contact support<br><span style="display: block">(Click anywhere to dismiss)</span>';
+      statusEl.innerHTML = `${isCancelled ? 'Update was cancelled' : 'An error occurred while updating dashboards'}<br><span style="display: block">(Click anywhere to dismiss)</span>`;
       progressBar.style.width = '100%';
-      progressBar.style.background = isCancelled ? '#f0ad4e' : '#ff6b6b';
+      progressBar.className = `progress-bar ${isCancelled ? 'warning' : 'error'}`;
       overlay.onclick = () => {
         overlay.classList.remove('active');
         progressBar.style.background = 'var(--philips)';
@@ -730,6 +787,7 @@
     if (document.visibilityState === 'visible') {
       const stored = (() => { try { return JSON.parse(localStorage.getItem('current_workflow_update') || 'null'); } catch (e) { return null; } })();
       if (stored && stored.project && (!__dashboardPollers[stored.project] || !__dashboardPollers[stored.project].active)) {
+        // Resume with stored state
         refreshDashboards(stored.project);
       }
     }

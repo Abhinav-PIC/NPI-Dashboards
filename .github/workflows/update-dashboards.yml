@@ -32,22 +32,9 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: package-lock.json
 
-      - name: Cache node_modules
-        uses: actions/cache@v3
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-modules-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Dependencies
-        run: |
-          if [ ! -d "node_modules" ] || [ ! -e "package-lock.json" ]; then
-            echo "Cache miss, installing dependencies..."
-            npm ci --omit=dev --prefer-offline --no-audit --no-fund --silent
-          else
-            echo "Cache hit, skipping installation"
-          fi
+      - name: Fast Install
+        run: npm ci --omit=dev --prefer-offline --no-audit --no-fund --no-progress --silent
             npm ci --omit=dev --prefer-offline --no-audit --no-fund --silent
           else
             echo "Cache hit, skipping installation"

@@ -17,10 +17,45 @@ on:
       - repository_dispatch
 
 jobs:
-  capture-dashboards:
+  prepare:
     runs-on: ubuntu-latest
+    outputs:
+      project: ${{ github.event.inputs.project || github.event.client_payload.project }}
+      urls: ${{ steps.set-matrix.outputs.urls }}
+    steps:
+      - name: Checkout for URLs
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Set up matrix
+        id: set-matrix
+        shell: bash
+        run: |
+          PROJECT="${{ github.event.inputs.project || github.event.client_payload.project }}"
+          # Read URLs from snapshots.js and create JSON array
+          urls=$(node -e "
+            const fs = require('fs');
+            const content = fs.readFileSync('snapshots.js', 'utf8');
+            const match = content.match(/const DASHBOARDS = ({[^}]+})/);
+            if (match) {
+              const obj = eval('(' + match[1] + ')');
+              console.log(JSON.stringify(obj['$PROJECT'] || []));
+            }
+          ")
+          echo "urls=$urls" >> $GITHUB_OUTPUT
+
+  capture-dashboards:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        url: ${{ fromJson(needs.prepare.outputs.urls) }}
+      # Run up to 3 jobs in parallel
+      max-parallel: 3
+      fail-fast: false
     env:
-      PROJECT: ${{ github.event.inputs.project || github.event.client_payload.project }}
+      PROJECT: ${{ needs.prepare.outputs.project }}
     permissions:
       contents: write
     steps:
@@ -80,8 +115,39 @@ jobs:
           fi
 
           echo "\u2705 Valid canonical project name detected"
-          echo "Running snapshots for project: $PROJECT"
-          node snapshots.js "$PROJECT"
+          echo "Running snapshot for URL: ${{ matrix.url }}"
+          # Pass both project name and specific URL to capture
+          node -e "
+            const puppeteer = require('puppeteer');
+            const sharp = require('sharp');
+            const fs = require('fs').promises;
+            const path = require('path');
+            
+            async function captureUrl() {
+              const browser = await puppeteer.launch({
+                headless: 'new',
+                args: ['--no-sandbox']
+              });
+              try {
+                const page = await browser.newPage();
+                await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 4 });
+                await page.goto('${{ matrix.url }}', { waitUntil: 'networkidle0', timeout: 120000 });
+                await page.waitForTimeout(60000);
+                
+                const month = new Date().toISOString().slice(0, 7);
+                const outDir = path.join('snapshots', month, '$PROJECT');
+                await fs.mkdir(outDir, { recursive: true });
+                
+                const urlIndex = process.env.GITHUB_RUN_ATTEMPT || '1';
+                const outPath = path.join(outDir, `Dashboard-${urlIndex}.png`);
+                await page.screenshot({ path: outPath, fullPage: true });
+              } finally {
+                await browser.close();
+              }
+            }
+            
+            captureUrl().catch(console.error);
+          "
 
       - name: Commit Changes
         shell: bash

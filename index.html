@@ -77,7 +77,8 @@
     .refresh-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(14, 95, 216, 0.95);
+      background: rgba(0,0,0,0.6); /* restore dark translucent overlay */
+      backdrop-filter: blur(6px);   /* subtle blur like before */
       display: none;
       flex-direction: column;
       align-items: center;
@@ -318,6 +319,26 @@
     </div>
   </div>
   <div class="veil" id="veil"></div>
+
+  <!-- Fail-safe: remove splash and veil if main JS fails to run -->
+  <script>
+    (function(){
+      try {
+        // If the main script doesn't run (syntax error or other), ensure the splash is removed
+        setTimeout(function(){
+          var s = document.getElementById('splash');
+          var v = document.getElementById('veil');
+          if (s && s.parentNode) {
+            s.classList.add('fade-out');
+            setTimeout(function(){ try { s.remove(); } catch(e){}; try { v && v.remove(); } catch(e){}; 
+              var top = document.getElementById('topbar'); if(top) top.style.opacity = '1';
+              var st = document.getElementById('stage'); if(st) st.style.opacity = '1';
+            }, 420);
+          }
+        }, 3500);
+      } catch(e) { console.error('Fail-safe splash removal failed', e); }
+    })();
+  </script>
 
   <!-- NAVIGATION -->
   <div class="top" id="topbar">
@@ -660,6 +681,7 @@
       if (!WORKFLOW_PAT_NEW || WORKFLOW_PAT_NEW === '${{ secrets.WORKFLOW_PAT_NEW }}') {
         console.error('GitHub token not configured');
         throw new Error('GitHub token not properly configured');
+      }
 
       const fullProjectName = (typeof project === 'string') ? project.replace(/^\s+|\s+$/g, '').replace(/^['"]|['"]$/g, '') : project;
       if (!['VM 13.0','Blaze 1.0','VM 14.0'].includes(fullProjectName)) throw new Error(`Invalid project name: ${fullProjectName}`);
@@ -670,20 +692,21 @@
       } else {
         // Start a new repository_dispatch
         setProgress(10, 'Preparing environment...', 'Starting workflow');
-        const dispatchResp = await fetch(`${REPO_API_BASE}/dispatches`, {
+        const payload = {
+          event_type: 'dashboard_update',
+          client_payload: { project: fullProjectName, timestamp: Date.now() }
+        };
+
+        const dispatchResp = await apiFetch(`${REPO_API_BASE}/dispatches`, {
           method: 'POST',
-          headers: { 'Accept': 'application/vnd.github.v3+json', 'Authorization': `Bearer ${WORKFLOW_PAT_NEW}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            event_type: 'dashboard_update',
-            client_payload: { 
-              project: fullProjectName,
-              timestamp: Date.now()
-            }
-          })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
         });
 
+        console.log('Dispatch response status:', dispatchResp.status);
         if (!dispatchResp.ok && dispatchResp.status !== 204) {
           const errText = await dispatchResp.text();
+          console.error('Dispatch error body:', errText);
           throw new Error(`GitHub dispatch failed: ${dispatchResp.status} ${errText}`);
         }
 

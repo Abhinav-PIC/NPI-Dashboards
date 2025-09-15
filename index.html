@@ -75,28 +75,13 @@
     @keyframes tagFade{to{opacity:0;transform:translateX(-20px)}}
     @keyframes fadeSplash{to{opacity:0;visibility:hidden}}
 
-    /* Refresh Overlay */
-    .refresh-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.25);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      z-index: 9998;
-      padding: 20px;
-      pointer-events: none;
-    }
-    
     /* Status Box */
     .status-box {
       position: fixed;
-      bottom: 20px;
+      top: 70px;
       right: 20px;
       background: var(--bar);
-      padding: 15px 20px;
+      padding: 12px 16px;
       border-radius: 8px;
       color: white;
       z-index: 9999;
@@ -107,13 +92,25 @@
       align-items: center;
       gap: 12px;
       opacity: 0;
-      transform: translateY(10px);
+      transform: translateY(-10px);
       transition: all 0.3s ease;
+      max-width: 400px;
+      min-width: 280px;
     }
     
     .status-box.active {
       opacity: 1;
       transform: translateY(0);
+    }
+    
+    .status-box .progress-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      background: var(--philips);
+      transition: width 0.5s ease;
+      border-radius: 0 0 8px 8px;
     }
 
     .refresh-overlay.active {
@@ -298,14 +295,13 @@
   </style>
 </head>
 <body>
-  <!-- Refresh Overlay -->
-  <div id="refresh-overlay" class="refresh-overlay">
-    <div class="spinner"></div>
-    <div class="message">Capturing latest dashboard data</div>
-    <div class="progress-container">
-      <div class="progress-bar"></div>
+  <!-- Status Box for Refresh Progress -->
+  <div id="status-box" class="status-box">
+    <div class="status-content">
+      <div class="message"></div>
+      <div class="status"></div>
     </div>
-    <div class="status"></div>
+    <div class="progress-bar"></div>
   </div>
 
   <!-- SPLASH -->
@@ -569,25 +565,21 @@
 
   async function refreshDashboards(project) {
     // Setup UI elements
-    const overlay = document.getElementById('refresh-overlay');
-    const messageEl = overlay.querySelector('.message');
-    const progressBar = overlay.querySelector('.progress-bar');
-    const statusEl = overlay.querySelector('.status');
+    const statusBox = document.getElementById('status-box');
+    const messageEl = statusBox.querySelector('.message');
+    const statusEl = statusBox.querySelector('.status');
+    const progressBar = statusBox.querySelector('.progress-bar');
     
-    // Create status box if it doesn't exist
-    let statusBox = document.querySelector('.status-box');
-    if (!statusBox) {
-      statusBox = document.createElement('div');
-      statusBox.className = 'status-box';
-      document.body.appendChild(statusBox);
-    }
+    // Show status box with animation
+    statusBox.classList.add('active');
     
-    // Show overlay and status box with subtle animation
-    overlay.classList.add('active');
-    setTimeout(() => {
-      statusBox.classList.add('active');
-      statusBox.style.transform = 'translateY(0)';
-    }, 100);
+    // Disable all refresh buttons for this project
+    const projectId = project.toLowerCase().replace(/\s+/g, '').replace(/\./g, '');
+    document.querySelectorAll(`.dropdown-item.refresh-button[onclick*="${project}"]`).forEach(btn => {
+      btn.style.opacity = '0.5';
+      btn.style.cursor = 'not-allowed';
+      btn.onclick = (e) => e.preventDefault();
+    });
     
     // Update all navigation buttons to show refresh state
     const projectRoute = project.toLowerCase().replace(/\s+/g, '').replace(/\./g, '');
@@ -656,18 +648,17 @@
       progressBar.style.width = `${newPercent}%`;
       if (message) messageEl.textContent = message;
       if (status !== undefined) statusEl.textContent = status;
-      if (color) progressBar.style.background = color;
       
-      // Update status box
-      statusBox.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <div>${message}</div>
-          ${status ? `<div style="font-size: 0.9em; opacity: 0.8;">${status}</div>` : ''}
+      // Update status content
+      statusBox.querySelector('.status-content').innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px">
+          <div style="font-weight: 600">${message}</div>
+          <div style="font-weight: 600">${newPercent}%</div>
         </div>
-        <div style="margin-left: auto; font-weight: 600;">${newPercent}%</div>
+        ${status ? `<div style="font-size: 0.9em; opacity: 0.8">${status}</div>` : ''}
       `;
       
-      // Update document title
+      // Update document title for progress
       document.title = newPercent < 100 ? 
         `(${newPercent}%) ${project} - NPI Dashboards` : 
         'NPI Dashboards';
@@ -677,7 +668,8 @@
         percent: newPercent,
         message,
         status,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        project
       }));
     };
 
@@ -820,9 +812,28 @@
               completedSteps: completed,
               stepStatus: dashSteps.map(s => `${s.name}: ${s.status} (${s.conclusion || 'running'})`)
             });
+            
+            // Show success state
+            updateProgress(100, '✓ Update Complete', 'Refreshing page...', '#4CAF50');
+            
+            // Clean up
             localStorage.removeItem(workflowKey);
-            // Wait longer to ensure everything is done
-            setTimeout(() => window.location.reload(), 3000);
+            localStorage.removeItem(progressKey);
+            
+            // Re-enable refresh buttons
+            document.querySelectorAll('.dropdown-item.refresh-button').forEach(btn => {
+              btn.style.opacity = '';
+              btn.style.cursor = '';
+              btn.onclick = null;
+            });
+            
+            // Hide status box with animation
+            setTimeout(() => {
+              statusBox.classList.remove('active');
+            }, 2000);
+            
+            // Reload page after status box animation
+            setTimeout(() => window.location.reload(), 2300);
             return;
           }
 

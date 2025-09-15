@@ -615,7 +615,9 @@
       runId: null,
       project: project,
       dispatchTime: null,
-      lastProgress: 0
+      lastProgress: 0,
+      lastMessage: null,
+      lastMessageTime: 0
     };
 
     // Immediately show full time so UI shows 10 right away
@@ -653,20 +655,30 @@
       "Almost done..."
     ];
 
-    const updateProgress = (percent, message, timeLeft) => {
+    const updateProgress = (percent, message, timeLeft, opts = {}) => {
       // Update progress bar
       // Enforce monotonic progress: never decrease
       percent = Math.max(percent, updateState.lastProgress || 0);
       progressBar.style.width = `${percent}%`;
       updateState.lastProgress = percent;
       
-      // Update message
-      if (message) messageEl.textContent = message;
+      // Update message with debounce to avoid rapid flicker
+      const now = Date.now();
+      const force = opts.force === true;
+      if (message && (force || message !== updateState.lastMessage)) {
+        const elapsed = now - (updateState.lastMessageTime || 0);
+        if (force || elapsed > 800) {
+          messageEl.textContent = message;
+          updateState.lastMessage = message;
+          updateState.lastMessageTime = now;
+        }
+        // if elapsed <= 800 and not forced, skip message update to avoid flicker
+      }
       
       // Update time
       if (typeof timeLeft === 'number') {
         const minutes = Math.floor(timeLeft / 60000);
-        if (timeLeft <= 60000) { // Last minute
+    if (timeLeft <= 60000) { // Last minute
           const seconds = Math.floor((timeLeft % 60000) / 1000);
           timeNum.textContent = `${seconds}`;
           statusBox.querySelector('.time-label').textContent = 'sec remaining';
@@ -683,22 +695,30 @@
   localStorage.setItem('refresh_start_time', updateState.startTime.toString());
   localStorage.setItem('current_workflow_update', JSON.stringify({ project, timestamp: updateState.startTime }));
 
-    // Start time update interval
+    // Ensure we persist and reuse start time across tabs
+    const storedStart = parseInt(localStorage.getItem('refresh_start_time'));
+    if (storedStart && (Date.now() - storedStart) < updateState.totalTime) {
+      updateState.startTime = storedStart;
+    } else {
+      localStorage.setItem('refresh_start_time', updateState.startTime.toString());
+    }
+
+    // Start time update interval (time-based progress to align with countdown)
     updateState.timer = setInterval(() => {
-      const storedStartTime = parseInt(localStorage.getItem('refresh_start_time'));
+      const storedStartTime = parseInt(localStorage.getItem('refresh_start_time')) || updateState.startTime;
       const elapsed = Date.now() - storedStartTime;
-      const timeLeft = updateState.totalTime - elapsed;
-      const progress = Math.min(95, (elapsed / updateState.totalTime) * 100);
-      
+      const timeLeft = Math.max(0, updateState.totalTime - elapsed);
+      const percentTime = Math.min(100, (elapsed / updateState.totalTime) * 100);
+
       if (timeLeft <= 0 && !updateState.isCompleted) {
         clearInterval(updateState.timer);
         window.location.reload();
         return;
       }
 
-      // Update message based on progress
-      const messageIndex = Math.floor((updateMessages.length - 1) * (progress / 100));
-      updateProgress(progress, updateMessages[messageIndex], timeLeft);
+      // Update message based on progress (use time-based percent for stability)
+      const messageIndex = Math.floor((updateMessages.length - 1) * (percentTime / 100));
+      updateProgress(percentTime, updateMessages[messageIndex], timeLeft);
     }, 1000);
 
     try {

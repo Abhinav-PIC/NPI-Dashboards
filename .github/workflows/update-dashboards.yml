@@ -17,45 +17,10 @@ on:
       - repository_dispatch
 
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
-    outputs:
-      project: ${{ github.event.inputs.project || github.event.client_payload.project }}
-      urls: ${{ steps.set-matrix.outputs.urls }}
-    steps:
-      - name: Checkout for URLs
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-      
-      - name: Set up matrix
-        id: set-matrix
-        shell: bash
-        run: |
-          PROJECT="${{ github.event.inputs.project || github.event.client_payload.project }}"
-          # Read URLs from snapshots.js and create JSON array
-          urls=$(node -e "
-            const fs = require('fs');
-            const content = fs.readFileSync('snapshots.js', 'utf8');
-            const match = content.match(/const DASHBOARDS = ({[^}]+})/);
-            if (match) {
-              const obj = eval('(' + match[1] + ')');
-              console.log(JSON.stringify(obj['$PROJECT'] || []));
-            }
-          ")
-          echo "urls=$urls" >> $GITHUB_OUTPUT
-
   capture-dashboards:
-    needs: prepare
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        url: ${{ fromJson(needs.prepare.outputs.urls) }}
-      # Run up to 3 jobs in parallel
-      max-parallel: 3
-      fail-fast: false
     env:
-      PROJECT: ${{ needs.prepare.outputs.project }}
+      PROJECT: ${{ github.event.inputs.project || github.event.client_payload.project }}
     permissions:
       contents: write
     steps:
@@ -63,6 +28,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          persist-credentials: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -84,7 +50,6 @@ jobs:
         if: steps.node-mod-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          set -euo pipefail
           echo "Cache miss, installing dependencies..."
           npm ci --omit=dev --prefer-offline --no-audit --no-fund --no-progress --silent
 
@@ -92,90 +57,72 @@ jobs:
         if: steps.node-mod-cache.outputs.cache-hit == 'true'
         run: echo "Cache hit, skipping installation"
 
-      - name: Capture Screenshots
+      - name: Validate and normalize project name
+        id: validate
         shell: bash
         run: |
-          # Get project name from input or client payload
-          RAW_PROJECT="${{ github.event.inputs.project || github.event.client_payload.project }}"
+          RAW_PROJECT="${PROJECT}"
           echo "📋 Raw project input: '$RAW_PROJECT'"
-
+          
           # Clean quotes, CR, and trim whitespace
           PROJECT_CLEAN=$(printf "%s" "$RAW_PROJECT" | tr -d '"' | tr -d "'" | tr -d '\r' | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')
-
-          # Only accept exact canonical project names; allow trimming of surrounding quotes/CR and whitespace
-          PROJECT="$PROJECT_CLEAN"
-
-          echo "\ud83d\udd0d Normalized (trimmed) project name: '$PROJECT'"
-
-          # Validate canonical project name (exact, case-sensitive)
-          if [[ "$PROJECT" != "VM 13.0" && "$PROJECT" != "Blaze 1.0" && "$PROJECT" != "VM 14.0" ]]; then
-            echo "\u274c Error: Invalid project name: '$PROJECT'"
-            echo "Must be one of: 'VM 13.0', 'Blaze 1.0', 'VM 14.0' (exact, case-sensitive)"
+          echo "project_clean=$PROJECT_CLEAN" >> $GITHUB_OUTPUT
+          
+          if [[ "$PROJECT_CLEAN" != "VM 13.0" && "$PROJECT_CLEAN" != "Blaze 1.0" && "$PROJECT_CLEAN" != "VM 14.0" ]]; then
+            echo "❌ Error: Invalid project name: '$PROJECT_CLEAN'"
             exit 1
           fi
+          echo "✅ Valid project name: $PROJECT_CLEAN"
 
-          echo "\u2705 Valid canonical project name detected"
-          echo "Running snapshot for URL: ${{ matrix.url }}"
-          # Pass both project name and specific URL to capture
-          node -e "
-            const puppeteer = require('puppeteer');
-            const sharp = require('sharp');
-            const fs = require('fs').promises;
-            const path = require('path');
-            
-            async function captureUrl() {
-              const browser = await puppeteer.launch({
-                headless: 'new',
-                args: ['--no-sandbox']
-              });
-              try {
-                const page = await browser.newPage();
-                await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 4 });
-                await page.goto('${{ matrix.url }}', { waitUntil: 'networkidle0', timeout: 120000 });
-                await page.waitForTimeout(60000);
-                
-                const month = new Date().toISOString().slice(0, 7);
-                const outDir = path.join('snapshots', month, '$PROJECT');
-                await fs.mkdir(outDir, { recursive: true });
-                
-                const urlIndex = process.env.GITHUB_RUN_ATTEMPT || '1';
-                const outPath = path.join(outDir, `Dashboard-${urlIndex}.png`);
-                await page.screenshot({ path: outPath, fullPage: true });
-              } finally {
-                await browser.close();
-              }
-            }
-            
-            captureUrl().catch(console.error);
-          "
+      - name: Create output directory
+        env:
+          PROJECT: ${{ steps.validate.outputs.project_clean }}
+        run: |
+          MONTH=$(date -u +%Y-%m)
+          mkdir -p "snapshots/$MONTH/$PROJECT"
 
-      - name: Commit Changes
+      - name: Capture Screenshots
         shell: bash
         env:
-          PROJECT: ${{ env.PROJECT }}
+          PROJECT: ${{ steps.validate.outputs.project_clean }}
         run: |
-          set -euo pipefail
+          echo "Running snapshots for project: $PROJECT"
+          node snapshots.js "$PROJECT"
+
+      - name: Pull before commit
+        run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git pull origin main --no-rebase
 
+      - name: Commit and push with retry
+        env:
+          PROJECT: ${{ steps.validate.outputs.project_clean }}
+        run: |
+          set -euo pipefail
           MONTH=$(date -u +%Y-%m)
+          
+          # Stage and commit changes
           git add "snapshots/$MONTH/${PROJECT}"
-          # commit if there are changes; allow-empty keeps old behaviour but ignore error if nothing to commit
-          git commit -m "Update ${PROJECT} screenshots [skip ci]" --allow-empty || true
-
-          # Ensure we have latest remote refs and rebase local branch to avoid push rejections when remote advanced
-          git fetch origin main
-          # Try to rebase local commits on top of remote main; if rebase fails, fall back to merge to avoid blocking
-          if git rev-parse --verify HEAD >/dev/null 2>&1; then
-            if ! git rebase origin/main; then
-              echo "Rebase failed, falling back to merge";
-              git rebase --abort || true;
-              git pull --no-rebase --no-edit || true;
+          git commit -m "Update ${PROJECT} screenshots [skip ci]" --allow-empty
+          
+          # Push with retries
+          for i in {1..3}; do
+            echo "Push attempt $i/3..."
+            
+            # Pull latest changes
+            git pull origin main
+            
+            if git push origin main; then
+              echo "✅ Push successful"
+              exit 0
             fi
-          fi
-
-          # Push; if a fast-forward rejection happens, try safe force-with-lease to avoid losing concurrent commits
-          if ! git push; then
-            echo "Push rejected, attempting push --force-with-lease";
-            git push --force-with-lease
-          fi
+            
+            if [ $i -lt 3 ]; then
+              echo "Push failed, retrying in 3s..."
+              sleep 3
+            fi
+          done
+          
+          echo "❌ Failed to push after 3 attempts"
+          exit 1

@@ -449,7 +449,7 @@
  <script>
   // Constants  
   const WORKFLOW_PAT_NEW = '${{ secrets.WORKFLOW_PAT_NEW }}';  // Will be replaced during build
-  const SPLASH_TIMEOUT = 3700;  // Maximum splash screen wait time
+  const SPLASH_TIMEOUT = 4000;  // Maximum splash screen wait time
   
   const ROUTES = ['home', 'vm13', 'blaze', 'vm14'];
   const CONTAINERS = ROUTES.reduce((acc, route) => {
@@ -609,7 +609,7 @@
     // Initialize update state
     updateState = {
       startTime: Date.now(),
-      totalTime: 11 * 60 * 1000, // 11 minutes (so UI shows 10 mins remaining initially)
+      totalTime: 12 * 60 * 1000, // 11 minutes (so UI shows 10 mins remaining initially)
       isCompleted: false,
       timer: null,
       runId: null,
@@ -949,7 +949,7 @@
       statusBox.classList.remove('active');
       progressBar.style.background = 'var(--philips)';
       timeRemaining.style.display = 'block';
-    }, 10000);
+    }, 12000);
   }
 
   // Add page visibility and storage change handling

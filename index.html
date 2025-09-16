@@ -281,51 +281,23 @@
       height: auto;
       display: block;
       background: #fff;
-      will-change: opacity;
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-      transform: translateZ(0);
-      -webkit-transform: translateZ(0);
     }
 
     /* Project containers */
-    .project{
-      position:absolute;
-      inset:0;
-      transition:opacity .15s ease-out;
-      will-change: opacity;
-      transform: translateZ(0);
-      -webkit-transform: translateZ(0);
-    }
-    .project.inactive{
-      opacity:0;
-      z-index:0;
-      pointer-events:none;
-    }
-    .project.active{
-      opacity:1;
-      z-index:1;
-      pointer-events:auto;
-    }
+    .project{position:absolute;inset:0;transition:opacity .3s ease}
+    .project.inactive{opacity:0;z-index:0;pointer-events:none}
+    .project.active{opacity:1;z-index:1;pointer-events:auto}
 
     /* Slider */
-    .slides{
-      position:absolute;
-      inset:0;
-      transform: translateZ(0);
-      -webkit-transform: translateZ(0);
-    }
+    .slides{position:absolute;inset:0}
     .slide{
       position:absolute;
       inset:0;
       opacity:0;
       pointer-events:none;
-      transition:opacity 0.15s ease-out;
+      transition:opacity 0.3s ease;
       height: 100%;
       overflow-y: auto;
-      will-change: opacity;
-      transform: translateZ(0);
-      -webkit-transform: translateZ(0);
     }
     .slide.active{
       opacity:1;
@@ -441,11 +413,11 @@
     <!-- VM13 -->
     <div id="view-vm13" class="project inactive">
       <div class="slides">
-        <div class="slide active"><img data-src="snapshots/2025-09/VM 13.0/Dashboard-1.png" alt="VM13 Dashboard 1" loading="eager"></div>
-        <div class="slide"><img data-src="snapshots/2025-09/VM 13.0/Dashboard-2.png" alt="VM13 Dashboard 2"></div>
-        <div class="slide"><img data-src="snapshots/2025-09/VM 13.0/Dashboard-3.png" alt="VM13 Dashboard 3"></div>
-        <div class="slide"><img data-src="snapshots/2025-09/VM 13.0/Dashboard-4.png" alt="VM13 Dashboard 4"></div>
-        <div class="slide"><img data-src="snapshots/2025-09/VM 13.0/Dashboard-5.png" alt="VM13 Dashboard 5"></div>
+        <div class="slide active"><img src="snapshots/2025-09/VM 13.0/Dashboard-1.png" alt="VM13 Dashboard 1" loading="eager"></div>
+        <div class="slide"><img src="snapshots/2025-09/VM 13.0/Dashboard-2.png" alt="VM13 Dashboard 2"></div>
+        <div class="slide"><img src="snapshots/2025-09/VM 13.0/Dashboard-3.png" alt="VM13 Dashboard 3"></div>
+        <div class="slide"><img src="snapshots/2025-09/VM 13.0/Dashboard-4.png" alt="VM13 Dashboard 4"></div>
+        <div class="slide"><img src="snapshots/2025-09/VM 13.0/Dashboard-5.png" alt="VM13 Dashboard 5"></div>
       </div>
       <div class="controls"><button class="btn prev">⟨ Prev</button><div class="counter">1 / 5</div><button class="btn next">Next ⟩</button></div>
     </div>
@@ -453,10 +425,10 @@
     <!-- Blaze -->
     <div id="view-blaze" class="project inactive">
       <div class="slides">
-        <div class="slide active"><img data-src="snapshots/2025-09/Blaze 1.0/Dashboard-1.png" alt="Blaze Dashboard 1" loading="eager"></div>
-        <div class="slide"><img data-src="snapshots/2025-09/Blaze 1.0/Dashboard-2.png" alt="Blaze Dashboard 2"></div>
-        <div class="slide"><img data-src="snapshots/2025-09/Blaze 1.0/Dashboard-3.png" alt="Blaze Dashboard 3"></div>
-        <div class="slide"><img data-src="snapshots/2025-09/Blaze 1.0/Dashboard-4.png" alt="Blaze Dashboard 4"></div>
+        <div class="slide active"><img src="snapshots/2025-09/Blaze 1.0/Dashboard-1.png" alt="Blaze Dashboard 1" loading="eager"></div>
+        <div class="slide"><img src="snapshots/2025-09/Blaze 1.0/Dashboard-2.png" alt="Blaze Dashboard 2"></div>
+        <div class="slide"><img src="snapshots/2025-09/Blaze 1.0/Dashboard-3.png" alt="Blaze Dashboard 3"></div>
+        <div class="slide"><img src="snapshots/2025-09/Blaze 1.0/Dashboard-4.png" alt="Blaze Dashboard 4"></div>
       </div>
       <div class="controls"><button class="btn prev">⟨ Prev</button><div class="counter">1 / 4</div><button class="btn next">Next ⟩</button></div>
     </div>
@@ -464,13 +436,13 @@
     <!-- VM14 -->
     <div id="view-vm14" class="project inactive">
       <div class="slides">
-        <div class="slide active"><img data-src="snapshots/2025-09/VM 14.0/Dashboard-1.png" alt="VM14 Dashboard 1" loading="eager"></div>
-        <div class="slide"><img data-src="snapshots/2025-09/VM 14.0/Dashboard-2.png" alt="VM14 Dashboard 2"></div>
-        <div class="slide"><img data-src="snapshots/2025-09/VM 14.0/Dashboard-3.png" alt="VM14 Dashboard 3"></div>
-        <div class="slide"><img data-src="snapshots/2025-09/VM 14.0/Dashboard-4.png" alt="VM14 Dashboard 4"></div>
-        <div class="slide"><img data-src="snapshots/2025-09/VM 14.0/Dashboard-5.png" alt="VM14 Dashboard 5"></div>
-        <div class="slide"><img data-src="snapshots/2025-09/VM 14.0/Dashboard-6.png" alt="VM14 Dashboard 6"></div>
-        <div class="slide"><img data-src="snapshots/2025-09/VM 14.0/Dashboard-7.png" alt="VM14 Dashboard 7"></div>
+        <div class="slide active"><img src="snapshots/2025-09/VM 14.0/Dashboard-1.png" alt="VM14 Dashboard 1" loading="eager"></div>
+        <div class="slide"><img src="snapshots/2025-09/VM 14.0/Dashboard-2.png" alt="VM14 Dashboard 2"></div>
+        <div class="slide"><img src="snapshots/2025-09/VM 14.0/Dashboard-3.png" alt="VM14 Dashboard 3"></div>
+        <div class="slide"><img src="snapshots/2025-09/VM 14.0/Dashboard-4.png" alt="VM14 Dashboard 4"></div>
+        <div class="slide"><img src="snapshots/2025-09/VM 14.0/Dashboard-5.png" alt="VM14 Dashboard 5"></div>
+        <div class="slide"><img src="snapshots/2025-09/VM 14.0/Dashboard-6.png" alt="VM14 Dashboard 6"></div>
+        <div class="slide"><img src="snapshots/2025-09/VM 14.0/Dashboard-7.png" alt="VM14 Dashboard 7"></div>
       </div>
       <div class="controls"><button class="btn prev">⟨ Prev</button><div class="counter">1 / 7</div><button class="btn next">Next ⟩</button></div>
     </div>
@@ -489,59 +461,21 @@
 
   let currentSliders = {};
 
-  function preloadImages(project) {
-    const slides = Array.from(project.querySelectorAll('.slide'));
-    const currentSlideIndex = slides.findIndex(slide => slide.classList.contains('active'));
-    
-    // Preload first 2 images immediately for instant view
-    slides.slice(0, 2).forEach(slide => {
-      const img = slide.querySelector('img[data-src]');
-      if (img && !img.src && img.dataset.src) {
-        img.src = img.dataset.src;
-      }
-    });
-
-    // Then preload rest in background
-    setTimeout(() => {
-      slides.forEach((slide, index) => {
-        const img = slide.querySelector('img[data-src]');
-        if (img && !img.src && img.dataset.src) {
-          const priority = Math.abs(index - currentSlideIndex);
-          // Use setTimeout to stagger loads but keep them quick
-          setTimeout(() => {
-            img.src = img.dataset.src;
-          }, priority * 100); // Stagger by 100ms per distance from current
-        }
-      });
-    }, 100);
-  }
-
   function show(route){
-    // Start preloading the target route's images immediately
-    if (route !== 'home') {
-      const targetEl = CONTAINERS[route];
-      if (targetEl && !currentSliders[route]) {
-        setupSlider(targetEl);
-        // Start preloading before transition
-        preloadImages(targetEl);
-      }
-    }
-
     ROUTES.forEach(r=>{
       const el=CONTAINERS[r];if(!el)return;
       if(r===route){
-        // Remove inactive first to trigger immediate display
+        el.classList.add('active');
         el.classList.remove('inactive');
-        // Small delay before adding active to ensure smooth transition
-        requestAnimationFrame(() => {
-          el.classList.add('active');
-        });
+        // Initialize slider for this route if it hasn't been yet
+        if(r !== 'home' && !currentSliders[r]) {
+          setupSlider(el);
+        }
       } else {
         el.classList.remove('active');
         el.classList.add('inactive');
       }
     });
-
     if(location.hash.replace('#','')!==route)location.hash=route;
   }
 
@@ -558,14 +492,7 @@
     let currentIndex = 0;
 
     function updateSlides() {
-      slides.forEach((s, i) => {
-        s.classList.toggle('active', i === currentIndex);
-        // Load image when slide becomes active or is adjacent
-        const img = s.querySelector('img[data-src]');
-        if (img && !img.src && img.dataset.src && (i === currentIndex || i === currentIndex - 1 || i === currentIndex + 1)) {
-          img.src = img.dataset.src;
-        }
-      });
+      slides.forEach((s, i) => s.classList.toggle('active', i === currentIndex));
       counter.textContent = `${currentIndex + 1} / ${slides.length}`;
       prev.disabled = currentIndex === 0;
       next.disabled = currentIndex === slides.length - 1;
@@ -624,18 +551,10 @@
     // Fallback
     setTimeout(removeSplash, SPLASH_TIMEOUT);
 
-    // Set initial route without loading all sliders
+    // Set initial route
     const initialRoute = location.hash.slice(1) || 'home';
     updateNavSelection(initialRoute);
-    
-    // Only setup slider for initial route if it's not home
-    if (initialRoute !== 'home') {
-      const container = CONTAINERS[initialRoute];
-      if (container) {
-        setupSlider(container);
-        preloadImages(container);
-      }
-    }
+    setupSliders();
   });
 
   function updateNavSelection(route){

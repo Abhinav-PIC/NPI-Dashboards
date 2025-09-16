@@ -289,20 +289,43 @@
     }
 
     /* Project containers */
-    .project{position:absolute;inset:0;transition:opacity .3s ease}
-    .project.inactive{opacity:0;z-index:0;pointer-events:none}
-    .project.active{opacity:1;z-index:1;pointer-events:auto}
+    .project{
+      position:absolute;
+      inset:0;
+      transition:opacity .15s ease-out;
+      will-change: opacity;
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
+    }
+    .project.inactive{
+      opacity:0;
+      z-index:0;
+      pointer-events:none;
+    }
+    .project.active{
+      opacity:1;
+      z-index:1;
+      pointer-events:auto;
+    }
 
     /* Slider */
-    .slides{position:absolute;inset:0}
+    .slides{
+      position:absolute;
+      inset:0;
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
+    }
     .slide{
       position:absolute;
       inset:0;
       opacity:0;
       pointer-events:none;
-      transition:opacity 0.3s ease;
+      transition:opacity 0.15s ease-out;
       height: 100%;
       overflow-y: auto;
+      will-change: opacity;
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
     }
     .slide.active{
       opacity:1;
@@ -467,53 +490,58 @@
   let currentSliders = {};
 
   function preloadImages(project) {
-    const slides = project.querySelectorAll('.slide');
-    const currentSlide = project.querySelector('.slide.active');
-    const currentImg = currentSlide?.querySelector('img[data-src]');
+    const slides = Array.from(project.querySelectorAll('.slide'));
+    const currentSlideIndex = slides.findIndex(slide => slide.classList.contains('active'));
     
-    if (currentImg && !currentImg.src && currentImg.dataset.src) {
-      currentImg.src = currentImg.dataset.src;
-    }
-    
-    // Load adjacent images
-    if (currentSlide) {
-      const nextSlide = currentSlide.nextElementSibling;
-      const prevSlide = currentSlide.previousElementSibling;
-      
-      if (nextSlide) {
-        const nextImg = nextSlide.querySelector('img[data-src]');
-        if (nextImg && !nextImg.src && nextImg.dataset.src) {
-          nextImg.src = nextImg.dataset.src;
-        }
+    // Preload first 2 images immediately for instant view
+    slides.slice(0, 2).forEach(slide => {
+      const img = slide.querySelector('img[data-src]');
+      if (img && !img.src && img.dataset.src) {
+        img.src = img.dataset.src;
       }
-      
-      if (prevSlide) {
-        const prevImg = prevSlide.querySelector('img[data-src]');
-        if (prevImg && !prevImg.src && prevImg.dataset.src) {
-          prevImg.src = prevImg.dataset.src;
+    });
+
+    // Then preload rest in background
+    setTimeout(() => {
+      slides.forEach((slide, index) => {
+        const img = slide.querySelector('img[data-src]');
+        if (img && !img.src && img.dataset.src) {
+          const priority = Math.abs(index - currentSlideIndex);
+          // Use setTimeout to stagger loads but keep them quick
+          setTimeout(() => {
+            img.src = img.dataset.src;
+          }, priority * 100); // Stagger by 100ms per distance from current
         }
-      }
-    }
+      });
+    }, 100);
   }
 
   function show(route){
+    // Start preloading the target route's images immediately
+    if (route !== 'home') {
+      const targetEl = CONTAINERS[route];
+      if (targetEl && !currentSliders[route]) {
+        setupSlider(targetEl);
+        // Start preloading before transition
+        preloadImages(targetEl);
+      }
+    }
+
     ROUTES.forEach(r=>{
       const el=CONTAINERS[r];if(!el)return;
       if(r===route){
-        el.classList.add('active');
+        // Remove inactive first to trigger immediate display
         el.classList.remove('inactive');
-        // Initialize slider and preload images for this route if it hasn't been yet
-        if(r !== 'home') {
-          if (!currentSliders[r]) {
-            setupSlider(el);
-          }
-          preloadImages(el);
-        }
+        // Small delay before adding active to ensure smooth transition
+        requestAnimationFrame(() => {
+          el.classList.add('active');
+        });
       } else {
         el.classList.remove('active');
         el.classList.add('inactive');
       }
     });
+
     if(location.hash.replace('#','')!==route)location.hash=route;
   }
 

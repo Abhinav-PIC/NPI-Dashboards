@@ -172,8 +172,10 @@
       font-size: 13px;
     }
 
-    /* Disable refresh buttons during update */
-    .refresh-button.disabled {
+    /* Disable buttons during update */
+    .refresh-button.disabled,
+    .export-button.disabled,
+    .edit-button.disabled {
       opacity: 0.5;
       pointer-events: none;
       cursor: not-allowed;
@@ -259,6 +261,15 @@
       color: var(--warning);
     }
 
+    .dropdown-item.export-button {
+      color: #4CAF50;
+    }
+
+    .dropdown-item.export-button:hover {
+      background: #4CAF50;
+      color: white;
+    }
+
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(-4px); }
       to { opacity: 1; transform: translateY(0); }
@@ -310,6 +321,10 @@
     .controls .btn[disabled]{background:var(--btnDis);cursor:not-allowed;opacity:.65}
     .counter{color:#fff;background:rgba(0,0,0,.35);padding:6px 10px;border-radius:8px;font-weight:700}
   </style>
+  
+  <!-- Export Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 </head>
 <body>
   <!-- Refresh Status Box -->
@@ -358,6 +373,14 @@
           <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
           Refresh Dashboards
         </a>
+        <a class="dropdown-item export-button" href="#" onclick="saveAsPDF('VM 13.0')">
+          <svg viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/></svg>
+          Save as PDF
+        </a>
+        <a class="dropdown-item export-button" href="#" onclick="saveAsPPT('VM 13.0')">
+          <svg viewBox="0 0 24 24"><path d="M9.8,13.4H8.7V10.5H9.8C10.6,10.5 11.2,11.1 11.2,12C11.2,12.9 10.6,13.4 9.8,13.4M23,7V17A2,2 0 0,1 21,19H3A2,2 0 0,1 1,17V7A2,2 0 0,1 3,5H21A2,2 0 0,1 23,7M7.8,15.5H10.2C11.8,15.5 13,14.3 13,12.5C13,10.7 11.8,9.5 10.2,9.5H7.8V15.5M15.1,15.5H16.3V13.3H17.9C18.7,13.3 19.3,12.7 19.3,11.9C19.3,11.1 18.7,10.5 17.9,10.5H15.1V15.5M16.3,12.3V11.5H17.7V12.3H16.3Z"/></svg>
+          Save as PowerPoint
+        </a>
         <a class="dropdown-item edit-button" href="https://app.smartsheet.eu/workspaces/W7JvM9F6XMVhxv7ffw4rVJfg4CM7xgfxjPC5JHf1" target="_blank">
           <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
           Edit Data
@@ -372,6 +395,14 @@
           <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
           Refresh Dashboards
         </a>
+        <a class="dropdown-item export-button" href="#" onclick="saveAsPDF('Blaze 1.0')">
+          <svg viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/></svg>
+          Save as PDF
+        </a>
+        <a class="dropdown-item export-button" href="#" onclick="saveAsPPT('Blaze 1.0')">
+          <svg viewBox="0 0 24 24"><path d="M9.8,13.4H8.7V10.5H9.8C10.6,10.5 11.2,11.1 11.2,12C11.2,12.9 10.6,13.4 9.8,13.4M23,7V17A2,2 0 0,1 21,19H3A2,2 0 0,1 1,17V7A2,2 0 0,1 3,5H21A2,2 0 0,1 23,7M7.8,15.5H10.2C11.8,15.5 13,14.3 13,12.5C13,10.7 11.8,9.5 10.2,9.5H7.8V15.5M15.1,15.5H16.3V13.3H17.9C18.7,13.3 19.3,12.7 19.3,11.9C19.3,11.1 18.7,10.5 17.9,10.5H15.1V15.5M16.3,12.3V11.5H17.7V12.3H16.3Z"/></svg>
+          Save as PowerPoint
+        </a>
         <a class="dropdown-item edit-button" href="https://app.smartsheet.eu/workspaces/MP68x2GxfFg79xcqvJhFw5hjhGQQ9j7G5G3QXQh1" target="_blank">
           <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
           Edit Data
@@ -385,6 +416,14 @@
   <a class="dropdown-item refresh-button" href="#" onclick="refreshDashboards('VM 14.0')">
           <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
           Refresh Dashboards
+        </a>
+        <a class="dropdown-item export-button" href="#" onclick="saveAsPDF('VM 14.0')">
+          <svg viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/></svg>
+          Save as PDF
+        </a>
+        <a class="dropdown-item export-button" href="#" onclick="saveAsPPT('VM 14.0')">
+          <svg viewBox="0 0 24 24"><path d="M9.8,13.4H8.7V10.5H9.8C10.6,10.5 11.2,11.1 11.2,12C11.2,12.9 10.6,13.4 9.8,13.4M23,7V17A2,2 0 0,1 21,19H3A2,2 0 0,1 1,17V7A2,2 0 0,1 3,5H21A2,2 0 0,1 23,7M7.8,15.5H10.2C11.8,15.5 13,14.3 13,12.5C13,10.7 11.8,9.5 10.2,9.5H7.8V15.5M15.1,15.5H16.3V13.3H17.9C18.7,13.3 19.3,12.7 19.3,11.9C19.3,11.1 18.7,10.5 17.9,10.5H15.1V15.5M16.3,12.3V11.5H17.7V12.3H16.3Z"/></svg>
+          Save as PowerPoint
         </a>
         <a class="dropdown-item edit-button" href="https://app.smartsheet.eu/workspaces/gM9wv3Rqwphqjj6hj4gHrGfPmrJWMFhhfCf7X6G1" target="_blank">
           <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
@@ -588,6 +627,448 @@
   // Global updateState so cancel handler can access
   let updateState = null;
 
+  // Project dashboard configurations
+  const DASHBOARD_COUNTS = {
+    'VM 13.0': 5,
+    'Blaze 1.0': 4,
+    'VM 14.0': 7
+  };
+
+  async function saveAsPDF(projectName) {
+    // Comprehensive validation
+    if (!projectName || typeof projectName !== 'string') {
+      alert('Please select a valid project first');
+      return;
+    }
+    
+    // Check if libraries are loaded
+    if (!window.jspdf) {
+      alert('PDF library not loaded. Please refresh the page.');
+      return;
+    }
+    
+    // Prevent multiple simultaneous exports
+    if (window.exportInProgress) {
+      alert('Export already in progress. Please wait.');
+      return;
+    }
+    
+    // Prevent export during refresh operations
+    if (window.updateState && !window.updateState.isCompleted) {
+      alert('Cannot export while refresh is in progress. Please wait for refresh to complete.');
+      return;
+    }
+    
+    window.exportInProgress = true;
+    
+    // Disable save buttons to prevent multiple clicks
+    document.querySelectorAll('.export-button').forEach(btn => btn.style.pointerEvents = 'none');
+    
+    const statusBox = document.getElementById('refresh-status');
+    const messageEl = statusBox.querySelector('.status-message');
+    
+    // Validate UI elements exist
+    if (!statusBox || !messageEl) {
+      console.error('Required UI elements not found');
+      window.exportInProgress = false;
+      return;
+    }
+    
+    statusBox.classList.add('active');
+    const timeRemaining = statusBox.querySelector('.time-remaining');
+    const progressContainer = statusBox.querySelector('.progress-container');
+    const cancelButton = statusBox.querySelector('#cancel-update');
+    
+    if (timeRemaining) timeRemaining.style.display = 'none';
+    if (progressContainer) progressContainer.style.display = 'none';
+    if (cancelButton) cancelButton.style.display = 'none';
+    messageEl.textContent = '⏳ Generating PDF...';
+    
+    try {
+      // Get dashboard images
+      const images = await getDashboardImages(projectName);
+      
+      if (images.length === 0) {
+        throw new Error('No dashboard images found');
+      }
+      
+      // Create PDF using jsPDF
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      // Title page with blue background (matching PowerPoint)
+      doc.setFillColor(14, 95, 216); // Philips blue background
+      doc.rect(0, 0, 297, 210, 'F'); // Fill entire page with blue
+      
+      doc.setFontSize(24);
+      doc.setTextColor(255, 255, 255); // White text on blue background
+      doc.text(projectName, 20, 30);
+      
+      doc.setFontSize(16);
+      doc.setTextColor(255, 255, 255); // White text
+      doc.text('Dashboard Report', 20, 50);
+      
+      doc.setFontSize(12);
+      doc.setTextColor(220, 220, 220); // Light gray text for details
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 70);
+      doc.text(`Total Dashboards: ${images.length}`, 20, 80);
+      
+
+      
+    // Add each dashboard image - full page, no titles
+    for (let i = 0; i < images.length; i++) {
+      doc.addPage();
+      
+      try {
+        // Simple image fitting - resize to fit page dimensions
+        const pageWidth = 297;  // A4 width in mm
+        const pageHeight = 210; // A4 height in mm
+        const margin = 15;      // 15mm margin
+        const imgWidth = pageWidth - (margin * 2);   // 267mm width
+        const imgHeight = pageHeight - (margin * 2);  // 180mm height
+        
+        // Compress image if it's too large to prevent "Invalid String Length" error
+        let imageData = images[i];
+        if (imageData.length > 1500000) { // If image is larger than 1.5MB
+          // Create a compressed version
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          const img = new Image();
+          
+          await new Promise((resolve) => {
+            img.onload = () => {
+              // Reduce size to prevent memory issues
+              const maxWidth = 1800;
+              const maxHeight = 1200;
+              let { width, height } = img;
+              
+              if (width > maxWidth || height > maxHeight) {
+                const ratio = Math.min(maxWidth / width, maxHeight / height);
+                width *= ratio;
+                height *= ratio;
+              }
+              
+              canvas.width = width;
+              canvas.height = height;
+              ctx.drawImage(img, 0, 0, width, height);
+              imageData = canvas.toDataURL('image/jpeg', 0.7);
+              resolve();
+            };
+            img.src = images[i];
+          });
+        }
+        
+        // Add image resized to fit page
+        doc.addImage(imageData, imageData.includes('jpeg') ? 'JPEG' : 'PNG', margin, margin, imgWidth, imgHeight);
+        
+
+        
+      } catch (err) {
+        console.warn(`Error adding image ${i + 1}:`, err);
+        doc.setFontSize(12);
+        doc.setTextColor(204, 0, 0);
+        doc.text(`Error loading dashboard image ${i + 1}`, 20, 105); // Center vertically
+      }
+    }      // Save the PDF
+      const timestamp = new Date().toISOString().slice(0, 10);
+      const filename = `${projectName.replace(/\s+/g, '_')}_Dashboard_Report_${timestamp}.pdf`;
+      
+      doc.save(filename);
+      
+      messageEl.textContent = `✅ PDF saved successfully`;
+      setTimeout(() => statusBox.classList.remove('active'), 3000);
+      
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      messageEl.textContent = `❌ PDF generation failed: ${error.message}`;
+      setTimeout(() => statusBox.classList.remove('active'), 5000);
+    } finally {
+      // Clean up PDF export state
+      window.exportInProgress = false;
+      
+      // Re-enable save buttons (don't restore time/cancel - those are for refresh only)
+      try {
+        document.querySelectorAll('.export-button').forEach(btn => btn.style.pointerEvents = 'auto');
+      } catch (error) {
+        console.error('Error during PDF cleanup:', error);
+      }
+    }
+  }
+
+  async function saveAsPPT(projectName) {
+    if (!projectName) {
+      alert('Please select a project first');
+      return;
+    }
+    
+    // Check if libraries are loaded
+    if (!window.PptxGenJS) {
+      alert('PowerPoint library not loaded. Please refresh the page.');
+      return;
+    }
+    
+    // Prevent multiple simultaneous exports
+    if (window.exportInProgress) {
+      alert('Export already in progress. Please wait.');
+      return;
+    }
+    
+    // Prevent export during refresh operations
+    if (window.updateState && !window.updateState.isCompleted) {
+      alert('Cannot export while refresh is in progress. Please wait for refresh to complete.');
+      return;
+    }
+    
+    window.exportInProgress = true;
+    
+    // Disable save buttons to prevent multiple clicks
+    document.querySelectorAll('.export-button').forEach(btn => btn.style.pointerEvents = 'none');
+    
+    const statusBox = document.getElementById('refresh-status');
+    const messageEl = statusBox.querySelector('.status-message');
+    
+    // Validate UI elements exist
+    if (!statusBox || !messageEl) {
+      console.error('Required UI elements not found');
+      window.exportInProgress = false;
+      return;
+    }
+    
+    statusBox.classList.add('active');
+    const timeRemaining = statusBox.querySelector('.time-remaining');
+    const progressContainer = statusBox.querySelector('.progress-container');
+    const cancelButton = statusBox.querySelector('#cancel-update');
+    
+    if (timeRemaining) timeRemaining.style.display = 'none';
+    if (progressContainer) progressContainer.style.display = 'none';
+    if (cancelButton) cancelButton.style.display = 'none';
+    messageEl.textContent = '⏳ Generating PowerPoint...';
+    
+    try {
+      const images = await getDashboardImages(projectName);
+      
+      if (images.length === 0) {
+        throw new Error('No dashboard images found for this project');
+      }
+
+      // Create new presentation
+      let pptx = new PptxGenJS();
+      pptx.layout = 'LAYOUT_WIDE'; // 10" x 7.5"
+      pptx.author = 'Philips NPI Dashboards';
+      pptx.company = 'Philips';
+      pptx.subject = `${projectName} Dashboard Report`;
+      pptx.title = `${projectName} Dashboards`;
+      
+      // Add title slide
+      let titleSlide = pptx.addSlide();
+      titleSlide.background = { color: '0e5fd8' }; // Philips blue
+      
+      titleSlide.addText(projectName, {
+        x: 1, y: 2, w: 8, h: 1.5,
+        fontSize: 36, bold: true, color: 'ffffff'
+      });
+      
+      titleSlide.addText('Dashboard Report', {
+        x: 1, y: 3.5, w: 8, h: 1,
+        fontSize: 24, color: 'ffffff'
+      });
+      
+      titleSlide.addText(`Generated: ${new Date().toLocaleDateString()}`, {
+        x: 1, y: 5, w: 8, h: 0.5,
+        fontSize: 14, color: 'cccccc'
+      });
+      
+      titleSlide.addText(`Total Dashboards: ${images.length}`, {
+        x: 1, y: 5.5, w: 8, h: 0.5,
+        fontSize: 14, color: 'cccccc'
+      });
+      
+
+      
+      // Add each dashboard as a slide with navigation
+      for (let i = 0; i < images.length; i++) {
+        let slide = pptx.addSlide();
+        slide.background = { color: 'ffffff' };
+        
+
+        
+        try {
+          // Extend images even more - stretch to 14" width
+          slide.addImage({
+            data: images[i],
+            x: 0,      // Start at left edge
+            y: 0,      // Start at top edge  
+            w: 14,     // Extended width (14" - much wider than 10" slide)
+            h: 7.5     // Full slide height (7.5")
+          });
+        } catch (err) {
+          console.warn(`Error adding slide ${i + 1}:`, err);
+          // Only show error text if image fails - center it
+          slide.addText(`Error loading dashboard image`, {
+            x: 1, y: 3.5, w: 8, h: 1,
+            fontSize: 24, color: 'ff0000',
+            align: 'center'
+          });
+        }
+      }
+      
+      // Save the PowerPoint
+      const timestamp = new Date().toISOString().slice(0, 10);
+      const filename = `${projectName.replace(/\s+/g, '_')}_Dashboard_Report_${timestamp}.pptx`;
+      
+      await pptx.writeFile({ fileName: filename });
+      
+      messageEl.textContent = `✅ PowerPoint saved successfully`;
+      setTimeout(() => statusBox.classList.remove('active'), 3000);
+      
+    } catch (error) {
+      console.error('PowerPoint generation failed:', error);
+      messageEl.textContent = `❌ PowerPoint generation failed: ${error.message}`;
+      setTimeout(() => statusBox.classList.remove('active'), 5000);
+    } finally {
+      // Clean up PowerPoint export state
+      window.exportInProgress = false;
+      
+      // Re-enable save buttons and restore UI
+      try {
+        document.querySelectorAll('.export-button').forEach(btn => btn.style.pointerEvents = 'auto');
+      } catch (error) {
+        console.error('Error during PowerPoint cleanup:', error);
+      }
+    }
+  }
+
+
+
+  function cancelExport() {
+    try {
+      // Clean up export state
+      window.exportInProgress = false;
+      
+      // Re-enable save buttons
+      document.querySelectorAll('.export-button').forEach(btn => {
+        if (btn) btn.style.pointerEvents = 'auto';
+      });
+      
+      // Hide status box (don't restore time/cancel - those are for refresh only)
+      const statusBox = document.getElementById('refresh-status');
+      if (statusBox) {
+        statusBox.classList.remove('active');
+      }
+    } catch (error) {
+      console.error('Error during cancel:', error);
+      // Force cleanup even if there's an error
+      window.exportInProgress = false;
+    }
+  }
+
+  async function getDashboardImages(projectName) {
+    // Validate input
+    if (!projectName || typeof projectName !== 'string') {
+      throw new Error('Invalid project name provided');
+    }
+    
+    const images = [];
+    const dashboardCount = DASHBOARD_COUNTS[projectName];
+    
+    if (!dashboardCount) {
+      throw new Error(`Project "${projectName}" not found in dashboard configuration`);
+    }
+    
+    if (dashboardCount <= 0) {
+      throw new Error(`No dashboards configured for project "${projectName}"`);
+    }
+    
+    try {
+      // Try to load images from snapshots directory structure
+      for (let i = 1; i <= dashboardCount; i++) {
+        try {
+          // Try current month first, then fallback to previous months
+          const currentDate = new Date();
+          const monthFolder = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+          const imagePath = `snapshots/${monthFolder}/${projectName}/Dashboard-${i}.png`;
+          
+          const imageData = await loadImageAsBase64(imagePath);
+          if (imageData) {
+            images.push(imageData);
+          }
+        } catch (err) {
+          console.warn(`Could not load dashboard ${i}:`, err);
+        }
+      }
+      
+      return images;
+      
+    } catch (error) {
+      console.error('Error getting dashboard images:', error);
+      return [];
+    }
+  }
+
+  async function loadImageAsBase64(imagePath) {
+    return new Promise((resolve, reject) => {
+      // Validate input
+      if (!imagePath || typeof imagePath !== 'string') {
+        reject(new Error('Invalid image path provided'));
+        return;
+      }
+      
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      // Set timeout for image loading
+      const timeout = setTimeout(() => {
+        reject(new Error(`Image loading timeout: ${imagePath}`));
+      }, 30000); // 30 second timeout
+      
+      img.onload = function() {
+        clearTimeout(timeout);
+        
+        try {
+          // Validate image dimensions
+          if (!img.naturalWidth || !img.naturalHeight) {
+            reject(new Error(`Invalid image dimensions: ${imagePath}`));
+            return;
+          }
+          
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          if (!ctx) {
+            reject(new Error('Failed to create canvas context'));
+            return;
+          }
+          
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          ctx.drawImage(img, 0, 0);
+          
+          const dataUrl = canvas.toDataURL('image/png');
+          if (!dataUrl || dataUrl === 'data:,') {
+            reject(new Error(`Failed to convert image to base64: ${imagePath}`));
+            return;
+          }
+          
+          resolve(dataUrl);
+        } catch (error) {
+          clearTimeout(timeout);
+          reject(new Error(`Canvas processing failed: ${error.message}`));
+        }
+      };
+      
+      img.onerror = function(error) {
+        clearTimeout(timeout);
+        reject(new Error(`Failed to load image: ${imagePath} - ${error.message || 'Unknown error'}`));
+      };
+      
+      img.src = imagePath;
+    });
+  }
+
   async function refreshDashboards(project) {
     const statusBox = document.getElementById('refresh-status');
     const messageEl = statusBox.querySelector('.status-message');
@@ -604,6 +1085,18 @@
     // Disable all refresh buttons
     document.querySelectorAll('.refresh-button').forEach(btn => {
       btn.classList.add('disabled');
+    });
+    
+    // Disable export buttons during refresh to prevent conflicts
+    document.querySelectorAll('.export-button').forEach(btn => {
+      btn.classList.add('disabled');
+      btn.style.pointerEvents = 'none';
+    });
+    
+    // Disable edit buttons during refresh to prevent data conflicts
+    document.querySelectorAll('.edit-button').forEach(btn => {
+      btn.classList.add('disabled');
+      btn.style.pointerEvents = 'none';
     });
 
     statusBox.classList.add('active');
@@ -894,6 +1387,18 @@
               btn.classList.remove('disabled');
             });
             
+            // Re-enable export buttons before reload
+            document.querySelectorAll('.export-button').forEach(btn => {
+              btn.classList.remove('disabled');
+              btn.style.pointerEvents = 'auto';
+            });
+            
+            // Re-enable edit buttons before reload
+            document.querySelectorAll('.edit-button').forEach(btn => {
+              btn.classList.remove('disabled');
+              btn.style.pointerEvents = 'auto';
+            });
+            
             setTimeout(() => window.location.reload(), 2000);
             return;
           }
@@ -937,6 +1442,18 @@
     // Re-enable refresh buttons
     document.querySelectorAll('.refresh-button').forEach(btn => {
       btn.classList.remove('disabled');
+    });
+    
+    // Re-enable export buttons
+    document.querySelectorAll('.export-button').forEach(btn => {
+      btn.classList.remove('disabled');
+      btn.style.pointerEvents = 'auto';
+    });
+    
+    // Re-enable edit buttons
+    document.querySelectorAll('.edit-button').forEach(btn => {
+      btn.classList.remove('disabled');
+      btn.style.pointerEvents = 'auto';
     });
 
     // Make status box dismissible
@@ -1052,6 +1569,18 @@
     // Hide UI immediately
     document.getElementById('refresh-status').classList.remove('active');
     document.querySelectorAll('.refresh-button').forEach(btn => btn.classList.remove('disabled'));
+    
+    // Re-enable export buttons when refresh is cancelled
+    document.querySelectorAll('.export-button').forEach(btn => {
+      btn.classList.remove('disabled');
+      btn.style.pointerEvents = 'auto';
+    });
+    
+    // Re-enable edit buttons when refresh is cancelled
+    document.querySelectorAll('.edit-button').forEach(btn => {
+      btn.classList.remove('disabled');
+      btn.style.pointerEvents = 'auto';
+    });
 
     // Try to determine runId if not present
     let runId = updateState.runId;
